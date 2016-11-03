@@ -1,0 +1,74 @@
+--- chromium/Makefile	2018-01-22 15:04:49.102466000 +0400
++++ chromium/Makefile	2018-01-22 15:17:34.523504000 +0400
+@@ -43,17 +43,14 @@
+ 		libexif.so:graphics/libexif \
+ 		libfontconfig.so:x11-fonts/fontconfig \
+ 		libgcrypt.so:security/libgcrypt \
+-		libicuuc.so:devel/icu \
+ 		libjsoncpp.so:devel/jsoncpp \
+ 		libnspr4.so:devel/nspr \
+ 		libnss3.so:security/nss \
+ 		libpci.so:devel/libpci \
+ 		libpng.so:graphics/png \
+-		libre2.so:devel/re2 \
+ 		libsnappy.so:archivers/snappy \
+ 		libspeechd.so:accessibility/speech-dispatcher \
+ 		libspeex.so:audio/speex \
+-		libwebp.so:graphics/webp \
+ 		libxml2.so:textproc/libxml2
+ 
+ RUN_DEPENDS=	${LOCALBASE}/lib/alsa-lib/libasound_module_pcm_oss.so:audio/alsa-plugins \
+@@ -118,24 +115,24 @@
+ 		use_system_bzip2=1 \
+ 		use_system_flac=1 \
+ 		use_system_harfbuzz=1 \
+-		use_system_icu=1 \
++		use_system_icu=0 \
+ 		use_system_jsoncpp=1 \
+ 		use_system_libevent=1 \
+ 		use_system_libexif=1 \
+ 		use_system_libjpeg=1 \
+ 		use_system_libpng=1 \
+ 		use_system_libusb=1 \
+-		use_system_libwebp=1 \
++		use_system_libwebp=0 \
+ 		use_system_libxml=1 \
+ 		use_system_libxslt=1 \
+ 		use_system_nspr=1 \
+ 		use_system_protobuf=0 \
+-		use_system_re2=1 \
++		use_system_re2=0 \
+ 		use_system_snappy=1 \
+ 		use_system_speex=1 \
+ 		use_system_xdg_utils=1 \
+ 		use_system_yasm=1 \
+-		v8_use_external_startup_data=0
++		v8_use_external_startup_data=1
+ # allow removal of third_party/adobe
+ GYP_DEFINES+=	flapper_version_h_file='${WRKSRC}/flapper_version.h'
+ 
+@@ -312,7 +309,7 @@
+ 		'third_party/google_input_tools/third_party/closure_library/third_party/closure' \
+ 		'third_party/hunspell' \
+ 		'third_party/iccjpeg' \
+-		'third_party/icu/icu.isolate' \
++		'third_party/icu' \
+ 		'third_party/jinja2' \
+ 		'third_party/jstemplate' \
+ 		'third_party/khronos' \
+@@ -324,6 +321,7 @@
+ 		'third_party/libvpx' \
+ 		'third_party/libvpx/source/libvpx/third_party/x86inc' \
+ 		'third_party/libwebm' \
++		'third_party/libwebp' \
+ 		'third_party/libxml/chromium' \
+ 		'third_party/libXNVCtrl' \
+ 		'third_party/libyuv' \
+@@ -347,6 +345,7 @@
+ 		'third_party/pywebsocket' \
+ 		'third_party/qcms' \
+ 		'third_party/qunit' \
++		'third_party/re2' \
+ 		'third_party/sfntly' \
+ 		'third_party/sinonjs' \
+ 		'third_party/skia' \

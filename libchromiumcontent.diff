@@ -1,0 +1,150 @@
+diff -ur a/chromiumcontent/chromiumcontent.gyp b/chromiumcontent/chromiumcontent.gyp
+--- a/chromiumcontent/chromiumcontent.gyp	2016-10-06 22:17:31.590038000 +0400
++++ b/chromiumcontent/chromiumcontent.gyp	2016-10-06 22:20:09.221832000 +0400
+@@ -20,6 +20,11 @@
+             'chromiumviews',
+           ],
+         }],
++        ['OS=="freebsd"', {
++          'dependencies': [
++            'chromiumviews',
++          ],
++       }],
+       ],
+     },
+     {
+@@ -58,7 +63,7 @@
+     },
+   ],
+   'conditions': [
+-    ['OS in ["win", "linux"]', {
++    ['OS in ["win", "linux", "freebsd"]', {
+       'targets': [
+         {
+           'target_name': 'chromiumviews',
+@@ -72,7 +77,7 @@
+             '<(DEPTH)/ui/wm/wm.gyp:wm',
+           ],
+           'conditions': [
+-            ['OS=="linux"', {
++            ['OS=="linux" or OS=="freebsd"', {
+               'dependencies': [
+                 '<(DEPTH)/chrome/browser/ui/libgtk2ui/libgtk2ui.gyp:gtk2ui',
+               ],
+diff -ur a/patches/allow_new_privs.patch b/patches/allow_new_privs.patch
+--- a/patches/allow_new_privs.patch	2016-10-06 21:53:12.121271000 +0400
++++ b/patches/allow_new_privs.patch	2016-10-06 21:53:35.226768000 +0400
+@@ -4,10 +4,10 @@
+ +++ b/base/process/launch.cc
+ @@ -27,7 +27,7 @@ LaunchOptions::LaunchOptions()
+        new_process_group(false)
+- #if defined(OS_LINUX)
++ #if defined(OS_LINUX) || defined(OS_FREEBSD)
+        , clone_flags(0)
+ -      , allow_new_privs(false)
+ +      , allow_new_privs(true)
+        , kill_on_parent_death(false)
+- #endif  // OS_LINUX
++ #endif  // OS_LINUX || OS_FREEBSD
+  #if defined(OS_POSIX)
+diff -ur a/patches/no_test_data.patch b/patches/no_test_data.patch
+--- a/patches/no_test_data.patch	2016-10-06 22:01:24.435340000 +0400
++++ b/patches/no_test_data.patch	2016-10-06 22:00:15.364929000 +0400
+@@ -2,7 +2,7 @@
+ index f3fc15a..0145322 100644
+ --- a/chrome/chrome_resources.gyp
+ +++ b/chrome/chrome_resources.gyp
+-@@ -713,16 +713,6 @@
++@@ -715,16 +715,6 @@
+        # GN version: //chrome/test/data/resources:webui_test_resources
+        'target_name': 'webui_test_resources',
+        'type': 'none',
+diff -ur a/script/create-dist b/script/create-dist
+--- a/script/create-dist
++++ b/script/create-dist
+@@ -27,17 +27,20 @@ TARGET_PLATFORM = {
+   'cygwin': 'win32',
+   'darwin': 'darwin',
+   'linux2': 'linux',
++  'freebsd11': 'freebsd',
+   'win32': 'win32',
+ }[sys.platform]
+ 
+ SHARED_LIBRARY_SUFFIX = {
+   'darwin': 'dylib',
+   'linux': 'so',
++  'freebsd': 'so',
+   'win32': 'dll',
+ }[TARGET_PLATFORM]
+ STATIC_LIBRARY_SUFFIX = {
+   'darwin': 'a',
+   'linux': 'a',
++  'freebsd': 'a',
+   'win32': 'lib',
+ }[TARGET_PLATFORM]
+ 
+@@ -91,6 +94,25 @@ BINARIES = {
+     'libsecurity_state.a',
+     os.path.join('lib', 'libffmpeg.so'),
+   ],
++   'freebsd': [
++    'chromedriver',
++    'mksnapshot',
++   # 'libosmesa.so',
++    'libgtk2ui.a',
++    'libdevtools_discovery.a',
++    'libdevtools_http_handler.a',
++    'libhttp_server.a',
++    'libdesktop_capture.a',
++    'libdesktop_capture_differ_sse2.a',
++    'librtc_base.a',
++    'librtc_base_approved.a',
++    'libwebrtc_common.a',
++    'libyuv.a',
++    'libsystem_wrappers.a',
++    'libcdm_renderer.a',
++    'libsecurity_state.a',
++    os.path.join('lib', 'libffmpeg.so'),
++  ],
+   'win32': [
+     'chromedriver.exe',
+     'd3dcompiler_47.dll',
+@@ -199,6 +221,9 @@ SYMBOLS = {
+   'linux': [
+     'libosmesa.so.dbg',
+   ],
++  'freebsd': [
++    'libosmesa.so.dbg',
++  ],
+   'win32': [
+     'libGLESv2.dll.pdb',
+   ],
+@@ -260,6 +285,10 @@ INCLUDE_DIRS = [
+     'dbus',
+     'third_party/speech-dispatcher',
+   ],
++  'freebsd': [
++    'dbus',
++    'third_party/speech-dispatcher',
++  ],
+   'win32': [],
+ }[TARGET_PLATFORM]
+ GENERATED_INCLUDE_DIRS = [
+@@ -361,7 +390,7 @@ def copy_binaries(target_arch, component, output_dir):
+         for filename in fnmatch.filter(filenames, '*.pdb'):
+           copy_with_blacklist(target_arch, os.path.join(root, filename), target_dir)
+ 
+-  if TARGET_PLATFORM == 'linux':
++  if TARGET_PLATFORM == 'linux' or TARGET_PLATFORM == 'freebsd':
+     if component == 'shared_library':
+       # out/Release/lib/*.so
+       for library in glob.glob(os.path.join(config_dir, 'lib', '*.so')):
+@@ -420,6 +449,8 @@ def copy_ffmpeg(target_arch):
+     binary = 'libffmpeg.dylib'
+   elif TARGET_PLATFORM == 'linux':
+     binary = os.path.join('lib', 'libffmpeg.so')
++  elif TARGET_PLATFORM == 'freebsd':
++    binary = os.path.join('lib', 'libffmpeg.so')
+   elif TARGET_PLATFORM == 'win32':
+     binary = 'ffmpeg.dll'
+

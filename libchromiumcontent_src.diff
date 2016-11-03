@@ -1,0 +1,56 @@
+diff -ur a/base/base.gypi b/base/base.gypi
+--- a/base/base.gypi	2016-10-06 22:13:43.437076000 +0400
++++ b/base/base.gypi	2016-10-06 22:11:48.345209000 +0400
+@@ -1041,6 +1041,7 @@
+               ['exclude', '^process/process_linux\\.cc$'],
+               ['exclude', '^sys_info_linux\\.cc$'],
+               ['exclude', '^process/process_iterator_linux\\.cc$'],
++              ['exclude', '^process/process_handle_linux\\.cc$'],
+               ['exclude', '^process/process_metrics_linux\\.cc$'],
+               ['exclude', '^files/file_path_watcher_fsevents\\.cc$'],
+               ['exclude', '^files/file_path_watcher_fsevents\\.h$'],
+diff -ur a/content/content_browser.gypi b/content/content_browser.gypi
+--- a/content/content_browser.gypi	2016-10-07 01:18:11.194702000 +0400
++++ b/content/content_browser.gypi	2016-10-07 01:17:51.547945000 +0400
+@@ -829,8 +829,6 @@
+       'browser/gamepad/raw_input_data_fetcher_win.h',
+       'browser/gamepad/xbox_data_fetcher_mac.cc',
+       'browser/gamepad/xbox_data_fetcher_mac.h',
+-      'browser/geolocation/empty_wifi_data_provider.cc',
+-      'browser/geolocation/empty_wifi_data_provider.h',
+       'browser/geolocation/geolocation_provider_impl.cc',
+       'browser/geolocation/geolocation_provider_impl.h',
+       'browser/geolocation/geolocation_service_context.cc',
+diff -ur a/content/content_common.gypi b/content/content_common.gypi
+--- a/content/content_common.gypi	2016-10-06 22:39:43.569912000 +0400
++++ b/content/content_common.gypi	2016-10-06 22:41:35.886332000 +0400
+@@ -589,11 +589,11 @@
+     }],
+     ['os_bsd==1', {
+       'sources!': [
+-        'common/sandbox_linux.cc',
+-        'common/sandbox_linux.h',
+-        'common/sandbox_init_linux.cc',
+-        'common/sandbox_seccomp_bpf_linux.cc',
+-        'common/sandbox_seccomp_bpf_linux.h',
++        'common/sandbox_linux/sandbox_linux.cc',
++        'common/sandbox_linux/sandbox_linux.h',
++        'common/sandbox_linux/sandbox_init_linux.cc',
++        'common/sandbox_linux/sandbox_seccomp_bpf_linux.cc',
++        'common/sandbox_linux/sandbox_seccomp_bpf_linux.h',
+         'common/sandbox_linux/bpf_cros_arm_gpu_policy_linux.cc',
+         'common/sandbox_linux/bpf_gpu_policy_linux.cc',
+         'common/sandbox_linux/bpf_ppapi_policy_linux.cc',
+diff -ur a/media/capture.gypi b/media/capture.gypi
+--- a/media/capture.gypi	2016-10-07 01:16:35.406635000 +0400
++++ b/media/capture.gypi	2016-10-07 01:15:50.810658000 +0400
+@@ -44,8 +44,6 @@
+       'capture/video/linux/video_capture_device_chromeos.h',
+       'capture/video/linux/video_capture_device_factory_linux.cc',
+       'capture/video/linux/video_capture_device_factory_linux.h',
+-      'capture/video/linux/video_capture_device_linux.cc',
+-      'capture/video/linux/video_capture_device_linux.h',
+       'capture/video/mac/video_capture_device_avfoundation_mac.h',
+       'capture/video/mac/video_capture_device_avfoundation_mac.mm',
+       'capture/video/mac/video_capture_device_decklink_mac.h',
+

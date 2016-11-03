@@ -1,0 +1,189 @@
+diff --git a/product.json b/product.json
+index 8b4de36..7c4d14e 100644
+--- a/product.json
++++ b/product.json
+@@ -12,5 +12,69 @@
+ 	"win32AppUserModelId": "Microsoft.CodeOSS",
+ 	"darwinBundleIdentifier": "com.visualstudio.code.oss",
+ 	"reportIssueUrl": "https://github.com/Microsoft/vscode/issues/new",
+-	"urlProtocol": "code-oss"
++	"urlProtocol": "code-oss",
++	"win32SetupExeBasename": "VSCodeSetup",
++	"downloadUrl": "https://code.visualstudio.com",
++	"welcomePage": "https://go.microsoft.com/fwlink/?LinkId=723048",
++	"updateUrl": "https://vscode-update.azurewebsites.net",
++	"quality": "stable",
++	"extensionsGallery": {
++		"serviceUrl": "https://marketplace.visualstudio.com/_apis/public/gallery",
++		"cacheUrl": "https://vscode.blob.core.windows.net/gallery/index",
++		"itemUrl": "https://marketplace.visualstudio.com/items"
++	},
++	"extensionTips": {
++		"ms-vscode.csharp": "{**/*.cs,**/project.json,**/global.json,**/*.csproj,**/*.sln}",
++		"ms-vscode.mono-debug": "{**/*.cs,**/*.csproj,**/*.sln}",
++		"msjsdiag.debugger-for-chrome": "{**/*.ts,**/*.tsx**/*.js,**/*.jsx,**/*.es6}",
++		"lukehoban.Go": "**/*.go",
++		"ms-vscode.PowerShell": "{**/*.ps,**/*.ps1}",
++		"Ionide.Ionide-fsharp": "{**/*.fsx,**/*.fsi,**/*.fs,**/*.ml,**/*.mli}",
++		"dbaeumer.vscode-eslint": "{**/*.js,**/*.jsx,**/*.es6}",
++		"eg2.tslint": "{**/*.ts,**/*.tsx}",
++		"Kasik96.format-indent": "{**/*.php}",
++		"felixfbecker.php-debug": "{**/*.php}",
++		"linyang95.phpmd": "{**/*.php}",
++		"ikappas.phpcs": "{**/*.php}",
++		"HvyIndustries.crane": "{**/*.php}",
++		"tht13.python": "{**/*.py}",
++		"donjayamanne.python": "{**/*.py}",
++		"magicstack.MagicPython": "{**/*.py}",
++		"saviorisdead.RustyCode": "{**/*.rs,**/*.rslib}",
++		"austin.code-gnu-global": "{**/*.c,**/*.cpp,**/*.h}",
++		"hars.CppSnippets": "{**/*.cpp,**/*.cc,**/*.h}",
++		"mitaki28.vscode-clang": "{**/*.cpp,**/*.cc,**/*.h}",
++		"ms-vscode.cpptools": "{**/*.c,**/*.cpp,**/*.cc,**/.cxx,**/*.hh,**/*.hpp,**/*.hxx,**/*.h}",
++		"seanmcbreen.Spell": "{**/*.md}",
++		"cssho.vscode-svgviewer": "{**/*.svg}",
++		"ms-vscode.latex": "{**/*.tex}",
++		"mathiasfrohlich.latexcompile": "{**/*.tex}",
++		"EditorConfig.EditorConfig": "{**/.editorconfig}",
++		"donjayamanne.githistory": "{**/.gitignore}",
++		"Unity.unity-debug": "{**/*.meta}",
++		"donjayamanne.javadebugger": "{**/*.java}",
++		"rebornix.Ruby": "{**/*.rb}",
++		"hoovercj.ruby-linter": "{**/*.rb}",
++		"misogi.ruby-rubocop": "{**/*.rb}",
++		"CraigMaslowski.erb": "{**/*.erb}",
++		"groksrc.haml": "{**/*.haml}"
++	},
++	"extensionImportantTips": {
++		"ms-vscode.csharp": "**/*.cs",
++		"lukehoban.Go": "**/*.go",
++		"donjayamanne.python": "{**/*.py}",
++		"ms-vscode.PowerShell": "{**/*.ps,**/*.ps1}",
++		"ms-vscode.cpptools": "{**/*.c,**/*.cpp,**/*.cc,**/.cxx,**/*.hh,**/*.hpp,**/*.hxx,**/*.h}"
++	},
++	"sendASmile": {
++		"reportIssueUrl": "https://go.microsoft.com/fwlink/?LinkId=534872",
++		"requestFeatureUrl": "https://go.microsoft.com/fwlink/?LinkID=533482"
++	},
++	"documentationUrl": "https://go.microsoft.com/fwlink/?LinkID=533484#vscode",
++	"releaseNotesUrl": "https://go.microsoft.com/fwlink/?LinkID=533483#vscode",
++	"twitterUrl": "https://go.microsoft.com/fwlink/?LinkID=533687",
++	"requestFeatureUrl": "https://go.microsoft.com/fwlink/?LinkID=533482",
++	"privacyStatementUrl": "https://go.microsoft.com/fwlink/?LinkId=786907",
++	"npsSurveyUrl": "https://www.research.net/r/Z2RMYRJ",
++	"date": "2016-10-11T013:57:52.000Z"
+ }
+\ No newline at end of file
+diff --git a/scripts/code-cli.sh b/scripts/code-cli.sh
+index 9a4c03e..3f62048 100755
+--- a/scripts/code-cli.sh
++++ b/scripts/code-cli.sh
+@@ -17,7 +17,7 @@ function code() {
+ 	if [[ "$OSTYPE" == "darwin"* ]]; then
+ 		test -d .build/electron/Code\ -\ OSS.app || ./node_modules/.bin/gulp electron
+ 	else
+-		test -d .build/electron/code-oss || ./node_modules/.bin/gulp electron
++		test -d ../electron/dist/electron || ./node_modules/.bin/gulp electron
+ 	fi
+ 
+ 	# Build
+@@ -26,7 +26,7 @@ function code() {
+ 	# Launch Code
+ 	[[ "$OSTYPE" == "darwin"* ]] \
+ 		&& ELECTRON=.build/electron/Code\ -\ OSS.app/Contents/MacOS/Electron \
+-		|| ELECTRON=.build/electron/code-oss
++		|| ELECTRON=../electron/dist/electron
+ 
+ 	CLI="$ROOT/out/cli.js"
+ 
+diff --git a/scripts/code.sh b/scripts/code.sh
+index 1e5b334..3db57d7 100755
+--- a/scripts/code.sh
++++ b/scripts/code.sh
+@@ -15,7 +15,8 @@ function code() {
+ 		CODE="./.build/electron/$NAME.app/Contents/MacOS/Electron"
+ 	else
+ 		NAME=`node -p "require('./product.json').applicationName"`
+-		CODE=".build/electron/$NAME"
++		#CODE=".build/electron/$NAME"
++		CODE="../electron/dist/electron"
+ 	fi
+ 
+ 	# Node modules
+diff --git a/scripts/npm.sh b/scripts/npm.sh
+index 9d95978..e1a8abf 100755
+--- a/scripts/npm.sh
++++ b/scripts/npm.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/local/bin/bash
+ 
+ if [[ "$OSTYPE" == "darwin"* ]]; then
+ 	realpath() { [[ $1 = /* ]] && echo "$1" || echo "$PWD/${1#./}"; }
+diff --git a/scripts/test-integration.sh b/scripts/test-integration.sh
+index fc7b94b..690bcc1 100755
+--- a/scripts/test-integration.sh
++++ b/scripts/test-integration.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/local/bin/bash
+ set -e
+ 
+ if [[ "$OSTYPE" == "darwin"* ]]; then
+diff --git a/scripts/test.sh b/scripts/test.sh
+index 59bd561..3efb9fb 100755
+--- a/scripts/test.sh
++++ b/scripts/test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/local/bin/bash
+ set -e
+ 
+ if [[ "$OSTYPE" == "darwin"* ]]; then
+@@ -15,7 +15,8 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
+ 	CODE="./.build/electron/$NAME.app/Contents/MacOS/Electron"
+ else
+ 	NAME=`node -p "require('./product.json').applicationName"`
+-	CODE=".build/electron/$NAME"
++	#CODE=".build/electron/$NAME"
++	CODE="../electron/dist/electron"
+ fi
+ 
+ # Node modules
+diff --git a/src/paths.js b/src/paths.js
+index 6935478..c783530 100644
+--- a/src/paths.js
++++ b/src/paths.js
+@@ -12,6 +12,7 @@ function getAppDataPath(platform) {
+ 		case 'win32': return process.env['APPDATA'] || path.join(process.env['USERPROFILE'], 'AppData', 'Roaming');
+ 		case 'darwin': return path.join(os.homedir(), 'Library', 'Application Support');
+ 		case 'linux': return process.env['XDG_CONFIG_HOME'] || path.join(os.homedir(), '.config');
++		case 'freebsd': return process.env['XDG_CONFIG_HOME'] || path.join(os.homedir(), '.config');
+ 		default: throw new Error('Platform not supported');
+ 	}
+ }
+diff --git a/src/vs/base/common/platform.ts b/src/vs/base/common/platform.ts
+index 3075beb..97e6957 100644
+--- a/src/vs/base/common/platform.ts
++++ b/src/vs/base/common/platform.ts
+@@ -47,6 +47,7 @@ if (typeof process === 'object') {
+ 	_isWindows = (process.platform === 'win32');
+ 	_isMacintosh = (process.platform === 'darwin');
+ 	_isLinux = (process.platform === 'linux');
++	_isLinux = (process.platform === 'freebsd');
+ 	_isRootUser = !_isWindows && (process.getuid() === 0);
+ 	let rawNlsConfig = process.env['VSCODE_NLS_CONFIG'];
+ 	if (rawNlsConfig) {
+diff --git a/src/vs/editor/contrib/selectionClipboard/electron-browser/selectionClipboard.ts b/src/vs/editor/contrib/selectionClipboard/electron-browser/selectionClipboard.ts
+index 85db4d3..3f5c71a 100644
+--- a/src/vs/editor/contrib/selectionClipboard/electron-browser/selectionClipboard.ts
++++ b/src/vs/editor/contrib/selectionClipboard/electron-browser/selectionClipboard.ts
+@@ -23,7 +23,7 @@ export class SelectionClipboard extends Disposable implements IEditorContributio
+ 	constructor(editor: ICodeEditor, @IContextKeyService contextKeyService: IContextKeyService) {
+ 		super();
+ 
+-		if (platform.isLinux) {
++		if (0) {
+ 			var isEnabled = editor.getConfiguration().contribInfo.selectionClipboard;
+ 
+ 			this._register(editor.onDidChangeConfiguration((e: IConfigurationChangedEvent) => {
