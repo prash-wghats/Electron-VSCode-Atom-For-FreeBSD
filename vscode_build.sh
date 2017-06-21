@@ -84,14 +84,19 @@ script/create-dist.py -c R
 echo "Building VSCODE"
 git clone https://github.com/microsoft/vscode
 cd vscode/
-###v1.7.0
-git checkout 1.7.0
-patch -p1  < ../vscodev1.diff
+###v1.10.0
+git checkout 1.10.0
+patch -p1  --ignore-whitespace < ../vscodev1.10.diff
+set +e
 scripts/npm.sh install --arch=x64
-patch -p1  < ../vscode.pty.cc.diff
-gmake -C node_modules/pty.js/build/
+set -e
+tar -xvf ../native-keymap.tar.gz -C node_modules/
+cd node_modules/native-keymap/
+node /usr/local/lib/node_modules/npm/node_modules/node-gyp/bin/node-gyp.js --nodedir ~/.electron-gyp/.node-gyp/iojs-1.3.7 rebuild
+cd ../../
 
 scripts/npm.sh install --arch=x64
+patch -p1 --ignore-whitespace < ../tsserver.diff
 ./node_modules/.bin/gulp compile
 # If the above command fails in monaco, run,
 #./node_modules/.bin/gulp watch
