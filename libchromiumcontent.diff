@@ -1,150 +1,156 @@
-diff -ur a/chromiumcontent/chromiumcontent.gyp b/chromiumcontent/chromiumcontent.gyp
---- a/chromiumcontent/chromiumcontent.gyp	2016-10-06 22:17:31.590038000 +0400
-+++ b/chromiumcontent/chromiumcontent.gyp	2016-10-06 22:20:09.221832000 +0400
-@@ -20,6 +20,11 @@
-             'chromiumviews',
-           ],
-         }],
-+        ['OS=="freebsd"', {
-+          'dependencies': [
-+            'chromiumviews',
-+          ],
-+       }],
-       ],
-     },
-     {
-@@ -58,7 +63,7 @@
-     },
-   ],
-   'conditions': [
--    ['OS in ["win", "linux"]', {
-+    ['OS in ["win", "linux", "freebsd"]', {
-       'targets': [
-         {
-           'target_name': 'chromiumviews',
-@@ -72,7 +77,7 @@
-             '<(DEPTH)/ui/wm/wm.gyp:wm',
-           ],
-           'conditions': [
--            ['OS=="linux"', {
-+            ['OS=="linux" or OS=="freebsd"', {
-               'dependencies': [
-                 '<(DEPTH)/chrome/browser/ui/libgtk2ui/libgtk2ui.gyp:gtk2ui',
-               ],
-diff -ur a/patches/allow_new_privs.patch b/patches/allow_new_privs.patch
---- a/patches/allow_new_privs.patch	2016-10-06 21:53:12.121271000 +0400
-+++ b/patches/allow_new_privs.patch	2016-10-06 21:53:35.226768000 +0400
-@@ -4,10 +4,10 @@
- +++ b/base/process/launch.cc
- @@ -27,7 +27,7 @@ LaunchOptions::LaunchOptions()
-        new_process_group(false)
-- #if defined(OS_LINUX)
-+ #if defined(OS_LINUX) || defined(OS_FREEBSD)
-        , clone_flags(0)
- -      , allow_new_privs(false)
- +      , allow_new_privs(true)
-        , kill_on_parent_death(false)
-- #endif  // OS_LINUX
-+ #endif  // OS_LINUX || OS_FREEBSD
-  #if defined(OS_POSIX)
-diff -ur a/patches/no_test_data.patch b/patches/no_test_data.patch
---- a/patches/no_test_data.patch	2016-10-06 22:01:24.435340000 +0400
-+++ b/patches/no_test_data.patch	2016-10-06 22:00:15.364929000 +0400
-@@ -2,7 +2,7 @@
- index f3fc15a..0145322 100644
- --- a/chrome/chrome_resources.gyp
- +++ b/chrome/chrome_resources.gyp
--@@ -713,16 +713,6 @@
-+@@ -715,16 +715,6 @@
-        # GN version: //chrome/test/data/resources:webui_test_resources
-        'target_name': 'webui_test_resources',
-        'type': 'none',
-diff -ur a/script/create-dist b/script/create-dist
---- a/script/create-dist
-+++ b/script/create-dist
-@@ -27,17 +27,20 @@ TARGET_PLATFORM = {
+diff -ru a/chromiumcontent/BUILD.gn b/chromiumcontent/BUILD.gn
+--- a/chromiumcontent/BUILD.gn	2017-11-19 14:49:49.458242000 +0400
++++ b/chromiumcontent/BUILD.gn	2017-11-19 15:09:57.095836000 +0400
+@@ -32,7 +32,7 @@
+       "//ui/views/controls/webview",
+     ]
+ 
+-    if (is_linux) {
++    if (is_linux||is_bsd) {
+       deps += [ "//chrome/browser/ui/libgtkui:libgtk2ui" ]
+     }
+ 
+@@ -52,7 +52,7 @@
+         ":webrtc_common",
+       ]
+ 
+-      if (is_linux) {
++      if (is_linux||is_bsd) {
+         deps += [ ":libgtkui" ]
+       }
+ 
+@@ -149,7 +149,7 @@
+       deps = [ "//third_party/webrtc:webrtc_common" ]
+   }
+ 
+-  if (is_linux) {
++  if (is_linux||is_bsd) {
+     # The original libgtkui target is a shared library, so we must list
+     # the object files instead of just depending on it.
+     static_library("libgtkui") {
+@@ -373,7 +373,7 @@
+   # libraries in the executable's directory, so ICU cannot be found. So let's
+   # make sure rpath is set here.
+   # See '//build/config/gcc/BUILD.gn' for details on the rpath setting.
+-  if (is_electron_build && is_linux && !is_component_build) {
++  if (is_electron_build && (is_linux||is_bsd) && !is_component_build) {
+     configs += [ "//build/config/gcc:rpath_for_built_shared_libraries" ]
+   }
+ }
+diff -ru a/script/build b/script/build
+--- a/script/build	2017-11-19 14:49:49.462400000 +0400
++++ b/script/build	2017-11-19 15:16:35.089854000 +0400
+@@ -16,15 +16,16 @@
+ NINJA = os.path.join(VENDOR_DIR, 'depot_tools', 'ninja')
+ if sys.platform == 'win32':
+   NINJA = '{0}.exe'.format(NINJA)
+-
++elif sys.platform == 'freebsd11':
++  NINJA = 'ninja'
+ 
+ def main():
+   args = parse_args()
+   target_arch = args.target_arch
+ 
+   env = os.environ.copy()
+-  env['PATH'] = os.pathsep.join([os.path.join(VENDOR_DIR, 'depot_tools'),
+-                                 env['PATH']])
++  #env['PATH'] = os.pathsep.join([os.path.join(VENDOR_DIR, 'depot_tools'),
++  #                               env['PATH']])
+   if sys.platform in ['win32', 'cygwin']:
+     env['DEPOT_TOOLS_WIN_TOOLCHAIN'] = '0'
+   if target_arch == 'arm64':
+diff -ru a/script/create-dist b/script/create-dist
+--- a/script/create-dist	2017-11-23 15:22:15.358515000 +0400
++++ b/script/create-dist	2017-11-23 15:59:51.840536000 +0400
+@@ -32,7 +32,9 @@
+ NINJA = os.path.join(VENDOR_DIR, 'depot_tools', 'ninja')
+ if sys.platform == 'win32':
+   NINJA = '{0}.exe'.format(NINJA)
+-
++elif sys.platform == 'freebsd11':
++  NINJA = 'ninja'
++  
+ COPY_PY = os.path.join(TOOLS_DIR, 'copy.py')
+ LICENSES_PY = os.path.join(TOOLS_DIR, 'licenses.py')
+ 
+@@ -40,6 +42,7 @@
    'cygwin': 'win32',
    'darwin': 'darwin',
    'linux2': 'linux',
-+  'freebsd11': 'freebsd',
++  'freebsd11': 'linux',
    'win32': 'win32',
  }[sys.platform]
  
- SHARED_LIBRARY_SUFFIX = {
-   'darwin': 'dylib',
-   'linux': 'so',
-+  'freebsd': 'so',
-   'win32': 'dll',
- }[TARGET_PLATFORM]
- STATIC_LIBRARY_SUFFIX = {
-   'darwin': 'a',
-   'linux': 'a',
-+  'freebsd': 'a',
-   'win32': 'lib',
- }[TARGET_PLATFORM]
+diff -ru a/script/update b/script/update
+--- a/script/update	2017-11-19 12:07:51.520627000 +0400
++++ b/script/update	2017-11-23 15:26:20.443541000 +0400
+@@ -23,7 +23,9 @@
+ NINJA = os.path.join(DEPOT_TOOLS, 'ninja')
+ if sys.platform == 'win32':
+   NINJA = '{0}.exe'.format(NINJA)
+-
++elif sys.platform == 'freebsd11':
++  NINJA = 'ninja'
++  
+ DEBIAN_MIRROR = 'http://ftp.jp.debian.org/debian/pool/main/'
+ BINTOOLS_NAME = 'c/cross-binutils/binutils-aarch64-linux-gnu_2.25-5_amd64.deb'
+ GCLIENT_CONFIG_PATH = os.path.join(SOURCE_ROOT, '.gclient')
+@@ -46,8 +48,8 @@
+   if sys.platform in ['win32', 'cygwin']:
+     update_depot_tools()
  
-@@ -91,6 +94,25 @@ BINARIES = {
-     'libsecurity_state.a',
-     os.path.join('lib', 'libffmpeg.so'),
-   ],
-+   'freebsd': [
-+    'chromedriver',
-+    'mksnapshot',
-+   # 'libosmesa.so',
-+    'libgtk2ui.a',
-+    'libdevtools_discovery.a',
-+    'libdevtools_http_handler.a',
-+    'libhttp_server.a',
-+    'libdesktop_capture.a',
-+    'libdesktop_capture_differ_sse2.a',
-+    'librtc_base.a',
-+    'librtc_base_approved.a',
-+    'libwebrtc_common.a',
-+    'libyuv.a',
-+    'libsystem_wrappers.a',
-+    'libcdm_renderer.a',
-+    'libsecurity_state.a',
-+    os.path.join('lib', 'libffmpeg.so'),
-+  ],
-   'win32': [
-     'chromedriver.exe',
-     'd3dcompiler_47.dll',
-@@ -199,6 +221,9 @@ SYMBOLS = {
-   'linux': [
-     'libosmesa.so.dbg',
-   ],
-+  'freebsd': [
-+    'libosmesa.so.dbg',
-+  ],
-   'win32': [
-     'libGLESv2.dll.pdb',
-   ],
-@@ -260,6 +285,10 @@ INCLUDE_DIRS = [
-     'dbus',
-     'third_party/speech-dispatcher',
-   ],
-+  'freebsd': [
-+    'dbus',
-+    'third_party/speech-dispatcher',
-+  ],
-   'win32': [],
- }[TARGET_PLATFORM]
- GENERATED_INCLUDE_DIRS = [
-@@ -361,7 +390,7 @@ def copy_binaries(target_arch, component, output_dir):
-         for filename in fnmatch.filter(filenames, '*.pdb'):
-           copy_with_blacklist(target_arch, os.path.join(root, filename), target_dir)
+-  if args.clean and os.path.isdir(SRC_DIR):
+-    git_clean_recursive(SRC_DIR)
++  #if args.clean and os.path.isdir(SRC_DIR):
++  #  git_clean_recursive(SRC_DIR)
  
--  if TARGET_PLATFORM == 'linux':
-+  if TARGET_PLATFORM == 'linux' or TARGET_PLATFORM == 'freebsd':
-     if component == 'shared_library':
-       # out/Release/lib/*.so
-       for library in glob.glob(os.path.join(config_dir, 'lib', '*.so')):
-@@ -420,6 +449,8 @@ def copy_ffmpeg(target_arch):
-     binary = 'libffmpeg.dylib'
-   elif TARGET_PLATFORM == 'linux':
-     binary = os.path.join('lib', 'libffmpeg.so')
-+  elif TARGET_PLATFORM == 'freebsd':
-+    binary = os.path.join('lib', 'libffmpeg.so')
-   elif TARGET_PLATFORM == 'win32':
-     binary = 'ffmpeg.dll'
-
+   # Warning about using a network share as git cache from Windows 7+: The
+   # gclient script may experience errors unless you disable SMBv2 cache by
+@@ -55,8 +57,8 @@
+   # HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\Lanmanworkstation\Parameters\DirectoryCacheLifetime
+   # to 0.
+   # More information: https://stackoverflow.com/a/9935126
+-  git_cache = args.git_cache or os.getenv('LIBCHROMIUMCONTENT_GIT_CACHE', '')
+-  gclient_sync(chromium_version(), args.clean, git_cache)
++  #git_cache = args.git_cache or os.getenv('LIBCHROMIUMCONTENT_GIT_CACHE', '')
++  #gclient_sync(chromium_version(), args.clean, git_cache)
+ 
+   if sys.platform == 'linux2':
+     install_sysroot()
+@@ -69,7 +71,7 @@
+ 
+   return (apply_patches() or
+           copy_chromiumcontent_files() or
+-          update_clang() or
++          #update_clang() or
+           run_gn(target_arch, args.defines))
+ 
+ 
+@@ -208,7 +210,9 @@
+     gn = os.path.join(SRC_DIR, 'buildtools', 'linux64', 'gn')
+   elif sys.platform == 'darwin':
+     gn = os.path.join(SRC_DIR, 'buildtools', 'mac', 'gn')
+-
++  elif sys.platform == 'freebsd11':
++    gn = os.path.join(SRC_DIR, 'out', 'Release', 'gn')
++    
+   env = os.environ.copy()
+   if sys.platform in ['win32', 'cygwin']:
+     env['DEPOT_TOOLS_WIN_TOOLCHAIN'] = '0'
+@@ -222,6 +226,15 @@
+     args = 'import("//chromiumcontent/args/{0}.gn") target_cpu="{1}"'.format(component, target_cpu)
+     if sys.platform in ['win32', 'cygwin']:
+       args += ' use_experimental_allocator_shim=false'
++    elif sys.platform == 'freebsd11':
++		args += ' is_clang=true  clang_use_chrome_plugins=false  enable_media_router=true'
++		args += '  enable_nacl=false  enable_one_click_signin=true  enable_remoting=false'
++		args += '  enable_webrtc=false  fieldtrial_testing_like_official_build=true  toolkit_views=true'
++		args += '  use_allocator="none"  use_aura=true  use_cups=true  use_experimental_allocator_shim=false'
++		args += '  treat_warnings_as_errors=false  use_sysroot=false  use_system_libjpeg=true  use_system_sqlite=false'
++		args += '  use_alsa=true ffmpeg_branding="Chrome" proprietary_codecs=true enable_hevc_demuxing=true use_lld=true'
++		args += ' is_debug=false symbol_level=0 remove_webcore_debug_symbols=true use_gconf=true use_kerberos=true'
++		args += ' use_pulseaudio=false extra_cxxflags="-D_LIBCPP_TRIVIAL_PAIR_COPY_CTOR=1 -I/usr/local/include"'
+     output_dir = get_output_dir(SOURCE_ROOT, target_arch, component)
+     subprocess.call([gn, 'gen', os.path.relpath(output_dir, SRC_DIR), '--args=' + args],
+                     cwd=SRC_DIR, env=env)

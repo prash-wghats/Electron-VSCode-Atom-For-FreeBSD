@@ -6,13 +6,13 @@ index d089dba..2c443f8 100644
  {
    'variables': {
      # The libraries brightray will be compiled to.
--    'linux_system_libraries': 'gtk+-2.0 dbus-1 x11 xi xcursor xdamage xrandr xcomposite xext xfixes xrender xtst xscrnsaver gconf-2.0 gmodule-2.0 nss'
-+    'linux_system_libraries': 'gtk+-2.0 dbus-1 x11 xi xcursor xdamage xrandr xcomposite xext xfixes xrender xtst xscrnsaver gconf-2.0 gmodule-2.0 nss',
-+    'freebsd_system_libraries': 'gtk+-2.0 dbus-1 x11 xi xcursor xdamage xrandr xcomposite xext xfixes xrender xtst xscrnsaver gconf-2.0 gmodule-2.0 nss',
+-    'linux_system_libraries': 'gtk+-2.0 dbus-1 x11 x11-xcb xcb xi xcursor xdamage xrandr xcomposite xext xfixes xrender xtst xscrnsaver gconf-2.0 gmodule-2.0 nss'
++    'linux_system_libraries': 'gtk+-2.0 dbus-1 x11 x11-xcb xcb xi xcursor xdamage xrandr xcomposite xext xfixes xrender xtst xscrnsaver gconf-2.0 gmodule-2.0 nss',
++    'freebsd_system_libraries': 'gtk+-2.0 dbus-1 x11 x11-xcb xcb xi xcursor xdamage xrandr xcomposite xext xfixes xrender xtst xscrnsaver gconf-2.0 gmodule-2.0 nss'
    },
    'includes': [
      'filenames.gypi',
-@@ -38,6 +39,74 @@
+@@ -40,6 +41,76 @@
        'sources': [ '<@(brightray_sources)' ],
        'conditions': [
          # Link with libraries of libchromiumcontent.
@@ -24,7 +24,9 @@ index d089dba..2c443f8 100644
 +            'libraries': [
 +              '-Wl,--start-group',
 +              '<@(libchromiumcontent_libraries)',
++              '-Wl,--whole-archive',
 +              '<@(libchromiumcontent_v8_libraries)',
++              '-Wl,--no-whole-archive '
 +              '-Wl,--end-group',
 +            ],
 +          },
@@ -42,9 +44,9 @@ index d089dba..2c443f8 100644
 +            'libraries': [
 +              '-lpthread',
 +              '<!@(<(pkg-config) --libs-only-l <(freebsd_system_libraries))',
-+              '-lexecinfo -lkvm -licui18n -licuuc -licudata -lgconf-2 -lgio-2.0 ',
++              '-lexecinfo -lkvm -lgconf-2 -lgio-2.0 ',
 +              '-lxml2 -lfontconfig -lfreetype -lexpat -lharfbuzz -lpng16 -lcups ',
-+              '-lspeechd -lm -lz -lrt  -lwebp -lwebpdemux -levent -ljpeg  -lre2 ',
++              '-lspeechd -lm -lz -lrt  -lwebp -lwebpdemux -ljpeg ',
 +              '-lasound -lsnappy -lxslt -lcups -lspeechd -ldbus-1 -lFLAC '
 +            ],
 +          },

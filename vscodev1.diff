@@ -2,7 +2,7 @@ diff --git a/product.json b/product.json
 index 8b4de36..7c4d14e 100644
 --- a/product.json
 +++ b/product.json
-@@ -12,5 +12,69 @@
+@@ -12,5 +12,67 @@
  	"win32AppUserModelId": "Microsoft.CodeOSS",
  	"darwinBundleIdentifier": "com.visualstudio.code.oss",
  	"reportIssueUrl": "https://github.com/Microsoft/vscode/issues/new",
@@ -12,7 +12,6 @@ index 8b4de36..7c4d14e 100644
 +	"downloadUrl": "https://code.visualstudio.com",
 +	"welcomePage": "https://go.microsoft.com/fwlink/?LinkId=723048",
 +	"updateUrl": "https://vscode-update.azurewebsites.net",
-+	"quality": "stable",
 +	"extensionsGallery": {
 +		"serviceUrl": "https://marketplace.visualstudio.com/_apis/public/gallery",
 +		"cacheUrl": "https://vscode.blob.core.windows.net/gallery/index",
@@ -70,24 +69,9 @@ index 8b4de36..7c4d14e 100644
 +	"twitterUrl": "https://go.microsoft.com/fwlink/?LinkID=533687",
 +	"requestFeatureUrl": "https://go.microsoft.com/fwlink/?LinkID=533482",
 +	"privacyStatementUrl": "https://go.microsoft.com/fwlink/?LinkId=786907",
-+	"npsSurveyUrl": "https://www.research.net/r/Z2RMYRJ",
-+	"date": "2016-10-11T013:57:52.000Z"
++	"npsSurveyUrl": "https://www.research.net/r/Z2RMYRJ"
  }
 \ No newline at end of file
-diff --git a/scripts/code.sh b/scripts/code.sh
-index 1e5b334..3db57d7 100755
---- a/scripts/code.sh
-+++ b/scripts/code.sh
-@@ -15,7 +15,8 @@ function code() {
- 		CODE="./.build/electron/$NAME.app/Contents/MacOS/Electron"
- 	else
- 		NAME=`node -p "require('./product.json').applicationName"`
--		CODE=".build/electron/$NAME"
-+		#CODE=".build/electron/$NAME"
-+		CODE="../electron/dist/electron"
- 	fi
- 
- 	# Node modules
 diff --git a/scripts/npm.sh b/scripts/npm.sh
 index 9d95978..e1a8abf 100755
 --- a/scripts/npm.sh
@@ -98,6 +82,87 @@ index 9d95978..e1a8abf 100755
  
  if [[ "$OSTYPE" == "darwin"* ]]; then
  	realpath() { [[ $1 = /* ]] && echo "$1" || echo "$PWD/${1#./}"; }
+--- a/scripts/code.sh	2017-11-29 17:04:52.675340000 +0400
++++ b/scripts/code.sh	2017-12-03 09:00:02.534799000 +0400
+@@ -15,7 +15,8 @@
+ 		CODE="./.build/electron/$NAME.app/Contents/MacOS/Electron"
+ 	else
+ 		NAME=`node -p "require('./product.json').applicationName"`
+-		CODE=".build/electron/$NAME"
++		#CODE=".build/electron/$NAME"
++		CODE="../electron/dist/electron"
+ 	fi
+ 
+ 	INTENDED_VERSION="v`node -p "require('./package.json').electronVersion"`"
+@@ -25,10 +26,12 @@
+ 	test -d node_modules || ./scripts/npm.sh install
+ 
+ 	# Get electron
+-	(test -f "$CODE" && [ $INTENDED_VERSION == $INSTALLED_VERSION ]) || ./node_modules/.bin/gulp electron
++	#(test -f "$CODE" && [ $INTENDED_VERSION == $INSTALLED_VERSION ]) || ./node_modules/.bin/gulp electron
+ 
+ 	# Build
+ 	test -d out || ./node_modules/.bin/gulp compile
++	
++	export LD_LIBRARY_PATH=$(dirname "$(realpath "$CODE")")
+ 
+ 	# Configuration
+ 	export NODE_ENV=development
+--- a/scripts/code-cli.sh	2017-11-29 17:04:52.675115000 +0400
++++ b/scripts/code-cli.sh	2017-12-03 09:00:21.574199000 +0400
+@@ -15,7 +15,7 @@
+ 		CODE="./.build/electron/$NAME.app/Contents/MacOS/Electron"
+ 	else
+ 		NAME=`node -p "require('./product.json').applicationName"`
+-		CODE=".build/electron/$NAME"
++		CODE="../electron/dist/electron"
+ 	fi
+ 
+ 	INTENDED_VERSION="v`node -p "require('./package.json').electronVersion"`"
+@@ -25,11 +25,13 @@
+ 	test -d node_modules || ./scripts/npm.sh install
+ 
+ 	# Get electron
+-	(test -f "$CODE" && [ $INTENDED_VERSION == $INSTALLED_VERSION ]) || ./node_modules/.bin/gulp electron
++	#(test -f "$CODE" && [ $INTENDED_VERSION == $INSTALLED_VERSION ]) || ./node_modules/.bin/gulp electron
+ 
+ 	# Build
+ 	test -d out || ./node_modules/.bin/gulp compile
+ 
++	export LD_LIBRARY_PATH=$(dirname "$(realpath "$CODE")")
++	
+ 	ELECTRON_RUN_AS_NODE=1 \
+ 	NODE_ENV=development \
+ 	VSCODE_DEV=1 \
+--- a/scripts/test.sh	2017-11-29 17:04:52.676515000 +0400
++++ b/scripts/test.sh	2017-12-03 09:00:38.291479000 +0400
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/local/bin/bash
+ 
+ 
+ if [[ "$OSTYPE" == "darwin"* ]]; then
+@@ -15,7 +15,8 @@
+ 	CODE="./.build/electron/$NAME.app/Contents/MacOS/Electron"
+ else
+ 	NAME=`node -p "require('./product.json').applicationName"`
+-	CODE=".build/electron/$NAME"
++	#CODE=".build/electron/$NAME"
++	CODE="../electron/dist/electron"
+ fi
+ 
+ INTENDED_VERSION="v`node -p "require('./package.json').electronVersion"`"
+@@ -25,7 +26,9 @@
+ test -d node_modules || ./scripts/npm.sh install
+ 
+ # Get electron
+-(test -f "$CODE" && [ $INTENDED_VERSION == $INSTALLED_VERSION ]) || ./node_modules/.bin/gulp electron
++#(test -f "$CODE" && [ $INTENDED_VERSION == $INSTALLED_VERSION ]) || ./node_modules/.bin/gulp electron
++
++export LD_LIBRARY_PATH=$(dirname "$(realpath "$CODE")")
+ 
+ # Unit Tests
+ export ELECTRON_ENABLE_LOGGING=1
 diff --git a/scripts/test-integration.sh b/scripts/test-integration.sh
 index fc7b94b..690bcc1 100755
 --- a/scripts/test-integration.sh
@@ -108,17 +173,15 @@ index fc7b94b..690bcc1 100755
  set -e
  
  if [[ "$OSTYPE" == "darwin"* ]]; then
-diff --git a/scripts/test.sh b/scripts/test.sh
-index 59bd561..3efb9fb 100755
---- a/scripts/test.sh
-+++ b/scripts/test.sh
+--- a/scripts/test-mocha.sh	2017-12-04 12:14:38.161847000 +0400
++++ b/scripts/test-mocha.sh	2017-12-04 12:15:17.872028000 +0400
 @@ -1,4 +1,4 @@
 -#!/bin/bash
 +#!/usr/local/bin/bash
- set -e
  
  if [[ "$OSTYPE" == "darwin"* ]]; then
-@@ -15,7 +15,8 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
+ 	realpath() { [[ $1 = /* ]] && echo "$1" || echo "$PWD/${1#./}"; }
+@@ -14,7 +14,8 @@
  	CODE="./.build/electron/$NAME.app/Contents/MacOS/Electron"
  else
  	NAME=`node -p "require('./product.json').applicationName"`
@@ -127,19 +190,20 @@ index 59bd561..3efb9fb 100755
 +	CODE="../electron/dist/electron"
  fi
  
- # Node modules
-diff --git a/src/paths.js b/src/paths.js
-index 6935478..c783530 100644
---- a/src/paths.js
-+++ b/src/paths.js
-@@ -12,6 +12,7 @@ function getAppDataPath(platform) {
- 		case 'win32': return process.env['APPDATA'] || path.join(process.env['USERPROFILE'], 'AppData', 'Roaming');
- 		case 'darwin': return path.join(os.homedir(), 'Library', 'Application Support');
- 		case 'linux': return process.env['XDG_CONFIG_HOME'] || path.join(os.homedir(), '.config');
-+		case 'freebsd': return process.env['XDG_CONFIG_HOME'] || path.join(os.homedir(), '.config');
- 		default: throw new Error('Platform not supported');
- 	}
- }
+ INTENDED_VERSION="v`node -p "require('./package.json').electronVersion"`"
+@@ -24,10 +25,11 @@
+ test -d node_modules || ./scripts/npm.sh install
+ 
+ # Get electron
+-(test -f "$CODE" && [ $INTENDED_VERSION == $INSTALLED_VERSION ]) || ./node_modules/.bin/gulp electron
++#(test -f "$CODE" && [ $INTENDED_VERSION == $INSTALLED_VERSION ]) || ./node_modules/.bin/gulp electron
+ 
+ # Build
+ test -d out || ./node_modules/.bin/gulp compile
++export LD_LIBRARY_PATH=$(dirname "$(realpath "$CODE")")
+ 
+ # Unit Tests
+ export VSCODE_DEV=1
 diff --git a/src/vs/base/common/platform.ts b/src/vs/base/common/platform.ts
 index 3075beb..97e6957 100644
 --- a/src/vs/base/common/platform.ts
@@ -152,38 +216,44 @@ index 3075beb..97e6957 100644
  	_isRootUser = !_isWindows && (process.getuid() === 0);
  	let rawNlsConfig = process.env['VSCODE_NLS_CONFIG'];
  	if (rawNlsConfig) {
-diff --git a/src/vs/editor/contrib/selectionClipboard/electron-browser/selectionClipboard.ts b/src/vs/editor/contrib/selectionClipboard/electron-browser/selectionClipboard.ts
-index 85db4d3..3f5c71a 100644
---- a/src/vs/editor/contrib/selectionClipboard/electron-browser/selectionClipboard.ts
-+++ b/src/vs/editor/contrib/selectionClipboard/electron-browser/selectionClipboard.ts
-@@ -23,7 +23,7 @@ export class SelectionClipboard extends Disposable implements IEditorContributio
+
+--- a/src/paths.js	2017-11-28 17:13:30.169778000 +0400
++++ b/src/paths.js	2017-11-28 17:13:44.777316000 +0400
+@@ -12,6 +12,7 @@
+ 		case 'win32': return process.env['VSCODE_APPDATA'] || process.env['APPDATA'] || path.join(process.env['USERPROFILE'], 'AppData', 'Roaming');
+ 		case 'darwin': return process.env['VSCODE_APPDATA'] || path.join(os.homedir(), 'Library', 'Application Support');
+ 		case 'linux': return process.env['VSCODE_APPDATA'] || process.env['XDG_CONFIG_HOME'] || path.join(os.homedir(), '.config');
++		case 'freebsd': return process.env['VSCODE_APPDATA'] || process.env['XDG_CONFIG_HOME'] || path.join(os.homedir(), '.config');
+ 		default: throw new Error('Platform not supported');
+ 	}
+ }
+--- a/src/vs/workbench/parts/codeEditor/electron-browser/selectionClipboard.ts	2017-11-28 17:15:37.043728000 +0400
++++ b/src/vs/workbench/parts/codeEditor/electron-browser/selectionClipboard.ts	2017-11-28 17:16:38.762306000 +0400
+@@ -25,7 +25,7 @@
  	constructor(editor: ICodeEditor, @IContextKeyService contextKeyService: IContextKeyService) {
  		super();
  
 -		if (platform.isLinux) {
 +		if (0) {
- 			var isEnabled = editor.getConfiguration().contribInfo.selectionClipboard;
+ 			let isEnabled = editor.getConfiguration().contribInfo.selectionClipboard;
  
  			this._register(editor.onDidChangeConfiguration((e: IConfigurationChangedEvent) => {
---- a/OSSREADME.json	2018-01-25 17:11:01.983223000 +0400
-+++ b/OSSREADME.json	2018-01-25 17:11:26.063093000 +0400
-@@ -117,7 +117,7 @@
- },
- {
- 	"name": "electron",
--	"version": "1.4.6",
-+	"version": "1.3.7",
- 	"license": "MIT",
- 	"repositoryURL": "https://github.com/electron/electron",
- 	"isProd": true
---- a/package.json	2018-01-25 17:33:36.967660000 +0400
-+++ b/package.json	2018-01-25 17:33:50.982304000 +0400
-@@ -1,7 +1,7 @@
- {
-   "name": "code-oss-dev",
-   "version": "1.10.0",
--  "electronVersion": "1.4.6",
-+  "electronVersion": "1.3.7",
-   "distro": "b8525ffa5912017bbd94b061316e111d753d9e41",
-   "author": {
-     "name": "Microsoft Corporation"
+--- a/package.json	2017-11-28 17:27:02.422509000 +0400
++++ b/package.json	2017-11-28 17:27:13.208293000 +0400
+@@ -62,7 +62,6 @@
+     "cson-parser": "^1.3.3",
+     "debounce": "^1.0.0",
+     "documentdb": "^1.5.1",
+-    "electron-mksnapshot": "~1.7.0",
+     "eslint": "^3.4.0",
+     "event-stream": "^3.1.7",
+     "express": "^4.13.1",
+--- a/build/npm/postinstall.js	2017-11-28 17:35:08.360045000 +0400
++++ b/build/npm/postinstall.js	2017-11-28 17:35:19.777141000 +0400
+@@ -58,5 +58,5 @@
+ }
+ 
+ npmInstall(`build`); // node modules required for build
+-npmInstall('test/smoke'); // node modules required for smoketest
++//npmInstall('test/smoke'); // node modules required for smoketest
+ npmInstallBuildDependencies(); // node modules for watching, specific to host node version, not electron

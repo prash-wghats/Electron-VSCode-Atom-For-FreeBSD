@@ -153,30 +153,13 @@ index ca06d7d..d0d99cc 100644
 @@ -35,7 +35,7 @@ SubmenuButton::SubmenuButton(views::ButtonListener* listener,
        text_width_(0),
        text_height_(0),
-       underline_color_(SK_ColorBLACK) {
+       underline_color_(SK_ColorBLACK), 
+       background_color_(background_color) {
 -#if defined(OS_LINUX)
 +#if defined(OS_LINUX) || defined(OS_FREEBSD)
    // Dont' use native style border.
    SetBorder(std::move(CreateDefaultBorder()));
  #endif
-diff --git a/atom/common/api/atom_api_crash_reporter.cc b/atom/common/api/atom_api_crash_reporter.cc
-index 184a70c..b15a271 100644
---- a/atom/common/api/atom_api_crash_reporter.cc
-+++ b/atom/common/api/atom_api_crash_reporter.cc
-@@ -34,11 +34,13 @@ namespace {
- void Initialize(v8::Local<v8::Object> exports, v8::Local<v8::Value> unused,
-                 v8::Local<v8::Context> context, void* priv) {
-   mate::Dictionary dict(context->GetIsolate(), exports);
-+#if !defined(OS_FREEBSD)
-   auto report = base::Unretained(CrashReporter::GetInstance());
-   dict.SetMethod("start",
-                  base::Bind(&CrashReporter::Start, report));
-   dict.SetMethod("_getUploadedReports",
-                  base::Bind(&CrashReporter::GetUploadedReports, report));
-+#endif
- }
- 
- }  // namespace
 diff --git a/atom/common/api/atom_bindings.cc b/atom/common/api/atom_bindings.cc
 index cf80d64..f6592ea 100644
 --- a/atom/common/api/atom_bindings.cc
@@ -264,13 +247,13 @@ index 34b9ea9..cf2bc26 100644
  
  namespace atom {
  
- NodeBindingsLinux::NodeBindingsLinux(bool is_browser)
+ NodeBindingsLinux::NodeBindingsLinux(BrowserEnvironment browser_env)
 +#if !defined(OS_FREEBSD)
-     : NodeBindings(is_browser),
+     : NodeBindings(browser_env),
 -      epoll_(epoll_create(1)) {
 +     epoll_(epoll_create(1)) {
 +#else
-+	: NodeBindings(is_browser) {
++	: NodeBindings(browser_env) {
 +#endif
 +#if !defined(OS_FREEBSD)
    int backend_fd = uv_backend_fd(uv_loop_);
@@ -486,9 +469,9 @@ index c109709..976279c 100644
  
 -#if defined(OS_LINUX) || defined(OS_OPENBSD)
 +#if defined(OS_LINUX) || defined(OS_OPENBSD) || defined(OS_FREEBSD)
- #include "content/public/common/child_process_sandbox_support_linux.h"
+ #include "content/public/child/child_process_sandbox_support_linux.h"
+ #include "content/public/common/common_sandbox_support_linux.h"
  #elif defined(OS_WIN)
- #include "third_party/skia/include/ports/SkFontMgr.h"
 @@ -27,7 +27,7 @@ PepperFlashFontFileHost::PepperFlashFontFileHost(
      const ppapi::proxy::SerializedFontDescription& description,
      PP_PrivateFontCharset charset)
@@ -589,9 +572,9 @@ index f7b2762..57224a9 100644
  
 diff --git a/electron.gyp b/electron.gyp
 index 96cb6b9..4d38b2e 100644
---- a/electron.gyp
-+++ b/electron.gyp
-@@ -164,9 +164,44 @@
+--- a/electron.gyp	2017-12-08 09:54:03.042046000 +0400
++++ b/electron.gyp	2017-12-08 10:33:02.667531000 +0400
+@@ -174,9 +174,44 @@
            ],
          }, {
            'dependencies': [
@@ -637,13 +620,20 @@ index 96cb6b9..4d38b2e 100644
          ['OS=="linux"', {
            'copies': [
              {
-@@ -319,6 +354,27 @@
+@@ -336,6 +371,28 @@
              'atom/common/crash_reporter/crash_reporter_mac.mm',
            ],
          }],  # OS=="mac" and mas_build==1
 +        ['OS=="freebsd"', {
 +          'sources': [
++            '<@(lib_sources_linux)',
 +            '<@(lib_sources_nss)',
++          ],
++           'sources!': [
++            'atom/common/crash_reporter/crash_reporter_linux.h',
++            'atom/common/crash_reporter/crash_reporter_linux.cc',
++            'atom/common/crash_reporter/linux/crash_dump_handler.cc',
++            'atom/common/crash_reporter/linux/crash_dump_handler.h',
 +          ],
 +          'link_settings': {
 +            'ldflags': [
@@ -655,16 +645,55 @@ index 96cb6b9..4d38b2e 100644
 +              '-rdynamic',
 +            ],
 +          },
-+           'sources!': [
-+            'atom/common/crash_reporter/crash_reporter_linux.h',
-+            'atom/common/crash_reporter/crash_reporter_linux.cc',
-+            'atom/common/crash_reporter/linux/crash_dump_handler.cc',
-+            'atom/common/crash_reporter/linux/crash_dump_handler.h',
-+          ],
 +        }],  # OS=="freebsd"  
          ['OS=="linux"', {
            'sources': [
-             '<@(lib_sources_nss)',
+             '<@(lib_sources_linux)',
+--- a/atom/common/crash_reporter/crash_reporter.cc	2017-11-28 15:01:34.526505000 +0400
++++ b/atom/common/crash_reporter/crash_reporter.cc	2017-11-28 14:56:43.582430000 +0400
+@@ -102,7 +102,11 @@
+ #endif
+ 
+ void CrashReporter::StartInstance(const mate::Dictionary& options) {
++#if !defined(OS_FREEBSD)
+   auto reporter = GetInstance();
++#else
++  CrashReporter *reporter = NULL;
++#endif
+   if (!reporter) return;
+ 
+   std::string product_name;
+--- a/atom/common/api/atom_api_crash_reporter.cc	2017-11-24 14:57:58.423424000 +0400
++++ b/atom/common/api/atom_api_crash_reporter.cc	2017-11-24 14:58:31.858654000 +0400
+@@ -33,16 +33,19 @@
+ 
+ void SetExtraParameter(const std::string& key, mate::Arguments* args) {
+   std::string value;
++#if !defined(OS_FREEBSD)
+   if (args->GetNext(&value))
+     CrashReporter::GetInstance()->SetExtraParameter(key, value);
+   else
+     CrashReporter::GetInstance()->RemoveExtraParameter(key);
++#endif
+ }
+ 
+ 
+ void Initialize(v8::Local<v8::Object> exports, v8::Local<v8::Value> unused,
+                 v8::Local<v8::Context> context, void* priv) {
+   mate::Dictionary dict(context->GetIsolate(), exports);
++#if !defined(OS_FREEBSD)
+   auto reporter = base::Unretained(CrashReporter::GetInstance());
+   dict.SetMethod("start", base::Bind(&CrashReporter::Start, reporter));
+   dict.SetMethod("setExtraParameter", &SetExtraParameter);
+@@ -52,6 +55,7 @@
+                  base::Bind(&CrashReporter::SetUploadToServer, reporter));
+   dict.SetMethod("getUploadToServer",
+                  base::Bind(&CrashReporter::GetUploadToServer, reporter));
++#endif
+ }
+ 
+ }  // namespace
+
 diff --git a/script/bootstrap.py b/script/bootstrap.py
 index 37f4ec21..f5521b7 100755
 --- a/script/bootstrap.py
@@ -697,7 +726,7 @@ diff --git a/script/create-dist.py b/script/create-dist.py
 index 9d97744..3bdb266 100755
 --- a/script/create-dist.py
 +++ b/script/create-dist.py
-@@ -59,6 +59,19 @@ TARGET_BINARIES = {
+@@ -61,6 +61,19 @@
      'natives_blob.bin',
      'snapshot_blob.bin',
    ],
@@ -715,9 +744,9 @@ index 9d97744..3bdb266 100755
 +    'snapshot_blob.bin',
 +  ],
  }
+ TARGET_BINARIES_EXT = []
  TARGET_DIRECTORIES = {
-   'darwin': [
-@@ -72,6 +85,10 @@ TARGET_DIRECTORIES = {
+@@ -75,6 +88,10 @@
      'resources',
      'locales',
    ],
@@ -728,7 +757,7 @@ index 9d97744..3bdb266 100755
  }
  
  
-@@ -80,7 +97,7 @@ def main():
+@@ -83,7 +100,7 @@
    os.makedirs(DIST_DIR)
  
    force_build()
@@ -737,8 +766,18 @@ index 9d97744..3bdb266 100755
    copy_binaries()
    copy_chrome_binary('chromedriver')
    copy_chrome_binary('mksnapshot')
-@@ -94,7 +111,7 @@ def main():
-   create_chrome_binary_zip('chromedriver', get_chromedriver_version())
+@@ -98,15 +115,15 @@
+     create_api_json_schema()
+     create_typescript_definitions()
+ 
+-  if PLATFORM == 'linux':
+-    strip_binaries()
++  #if PLATFORM == 'linux':
++  strip_binaries()
+ 
+   create_version()
+   create_dist_zip()
+   create_chrome_binary_zip('chromedriver', ELECTRON_VERSION)
    create_chrome_binary_zip('mksnapshot', ELECTRON_VERSION)
    create_ffmpeg_zip()
 -  create_symbols_zip()
@@ -746,7 +785,7 @@ index 9d97744..3bdb266 100755
  
  
  def force_build():
-@@ -196,6 +213,8 @@ def create_ffmpeg_zip():
+@@ -266,6 +283,8 @@
      ffmpeg_name = 'libffmpeg.dylib'
    elif PLATFORM == 'linux':
      ffmpeg_name = 'libffmpeg.so'
