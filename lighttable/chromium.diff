@@ -1,0 +1,232 @@
+--- a/third_party/webrtc/libjingle/xmllite/xmllite.gyp	2017-12-10 23:00:54.699933000 +0400
++++ b/third_party/webrtc/libjingle/xmllite/xmllite.gyp	2017-12-10 23:01:15.875059000 +0400
+@@ -41,6 +41,9 @@
+         'xmlprinter.cc',
+         'xmlprinter.h',
+       ],
++      'include_dirs': [
++        '/usr/local/include',
++      ],
+     },
+   ],
+ }
+--- a/third_party/webrtc/libjingle/libjingle.gyp	2017-12-10 22:58:03.577778000 +0400
++++ b/third_party/webrtc/libjingle/libjingle.gyp	2017-12-10 22:58:13.098202000 +0400
+@@ -30,6 +30,9 @@
+         'xmpp/jingleinfotask.cc',
+         'xmpp/jingleinfotask.h',
+       ],
++      'include_dirs': [
++        '/usr/local/include',
++      ],
+     },  # target libjingle_xmpphelp
+   ],
+ }
+--- a/third_party/webrtc/webrtc.gyp	2017-12-10 22:52:27.513209000 +0400
++++ b/third_party/webrtc/webrtc.gyp	2017-12-10 22:53:34.143633000 +0400
+@@ -45,6 +45,9 @@
+         '<@(webrtc_all_dependencies)',
+         'webrtc',
+       ],
++      'include_dirs': [
++        '/usr/local/include',
++      ],
+       'conditions': [
+         ['include_tests==1', {
+           'dependencies': [
+--- a/net/third_party/nss/ssl/ssl3con.c	2017-12-10 22:27:34.442351000 +0400
++++ b/net/third_party/nss/ssl/ssl3con.c	2017-12-10 22:31:14.952828000 +0400
+@@ -2115,8 +2115,8 @@
+     param.len = sizeof(aeadParams);
+     param.data = (unsigned char *) &aeadParams;
+     memset(&aeadParams, 0, sizeof(aeadParams));
+-    aeadParams.pIv = (unsigned char *) additionalData;
+-    aeadParams.ulIvLen = 8;
++    aeadParams.pNonce = (unsigned char *) additionalData;
++    aeadParams.ulNonceLen = 8;
+     aeadParams.pAAD = (unsigned char *) additionalData;
+     aeadParams.ulAADLen = additionalDataLen;
+     aeadParams.ulTagLen = tagSize;
+--- a/v8/src/zone-containers.h	2017-12-10 23:23:24.943655000 +0400
++++ b/v8/src/zone-containers.h	2017-12-10 23:46:16.185313000 +0400
+@@ -114,12 +114,12 @@
+ // a zone allocator.
+ template <typename K, typename V, typename Compare = std::less<K>>
+ class ZoneMap
+-    : public std::map<K, V, Compare, zone_allocator<std::pair<K, V>>> {
++    : public std::map<K, V, Compare, zone_allocator<std::pair<const K, V>>> {
+  public:
+   // Constructs an empty map.
+   explicit ZoneMap(Zone* zone)
+-      : std::map<K, V, Compare, zone_allocator<std::pair<K, V>>>(
+-            Compare(), zone_allocator<std::pair<K, V>>(zone)) {}
++      : std::map<K, V, Compare, zone_allocator<std::pair<const K, V>>>(
++            Compare(), zone_allocator<std::pair<const K, V>>(zone)) {}
+ };
+ 
+ 
+--- a/v8/src/compiler/js-type-feedback.h	2017-12-10 23:28:20.932596000 +0400
++++ b/v8/src/compiler/js-type-feedback.h	2017-12-10 23:43:28.702314000 +0400
+@@ -33,9 +33,10 @@
+  private:
+   friend class JSTypeFeedbackSpecializer;
+   typedef std::map<NodeId, TypeFeedbackId, std::less<NodeId>,
+-                   zone_allocator<TypeFeedbackId> > TypeFeedbackIdMap;
++                   zone_allocator<std::pair<const NodeId, TypeFeedbackId> > >
++	  TypeFeedbackIdMap;
+   typedef std::map<NodeId, FeedbackVectorICSlot, std::less<NodeId>,
+-                   zone_allocator<FeedbackVectorICSlot> >
++                   zone_allocator<std::pair<const NodeId, FeedbackVectorICSlot> > >
+       FeedbackVectorICSlotMap;
+ 
+   TypeFeedbackIdMap type_feedback_id_map_;
+--- a/third_party/WebKit/Source/platform/blink_platform.gyp	2017-12-17 17:48:01.089157000 +0400
++++ b/third_party/WebKit/Source/platform/blink_platform.gyp	2017-12-17 17:53:13.433707000 +0400
+@@ -38,9 +38,6 @@
+   'targets': [{
+     'target_name': 'blink_common',
+     'type': '<(component)',
+-    'include_dirs': [
+-      '<(prefix_dir)/include',
+-    ],
+     'variables': { 'enable_wexit_time_destructors': 1 },
+     'dependencies': [
+       '../config.gyp:config',
+@@ -216,6 +213,7 @@
+       'INSIDE_BLINK',
+     ],
+     'include_dirs': [
++      '<(angle_path)/../icu/source/i18n', '<(angle_path)/../icu/source/common',
+       '<(angle_path)/include',
+       '<(SHARED_INTERMEDIATE_DIR)/blink',
+     ],
+--- a/v8/src/compiler/instruction.h	2017-12-11 08:59:52.789656000 +0400
++++ b/v8/src/compiler/instruction.h	2017-12-11 09:00:48.889324000 +0400
+@@ -1011,7 +1011,7 @@
+ 
+ typedef ZoneDeque<Constant> ConstantDeque;
+ typedef std::map<int, Constant, std::less<int>,
+-                 zone_allocator<std::pair<int, Constant> > > ConstantMap;
++                 zone_allocator<std::pair<const int, Constant> > > ConstantMap;
+ 
+ typedef ZoneDeque<Instruction*> InstructionDeque;
+ typedef ZoneDeque<ReferenceMap*> ReferenceMapDeque;
+--- a/media/media.gyp	2017-12-11 10:51:02.025537000 +0400
++++ b/media/media.gyp	2017-12-11 10:59:20.976040000 +0400
+@@ -69,8 +69,8 @@
+       'defines': [
+         'MEDIA_IMPLEMENTATION',
+       ],
+-      'include_dirs': [
+-        '..',
++       'include_dirs': [
++        '../third_party/ffmpeg', '..',
+       ],
+       'sources': [
+         'audio/agc_audio_stream.h',
+--- a/gpu/command_buffer/service/error_state.cc	2017-12-11 11:43:55.969114000 +0400
++++ b/gpu/command_buffer/service/error_state.cc	2017-12-11 11:45:05.776694000 +0400
+@@ -12,6 +12,8 @@
+ #include "gpu/command_buffer/service/logger.h"
+ #include "ui/gl/gl_bindings.h"
+ 
++#define GL_CONTEXT_LOST_KHR               0x0507
++
+ namespace gpu {
+ namespace gles2 {
+ 
+--- a/printing/backend/print_backend_cups.cc	2017-12-11 12:05:37.715368000 +0400
++++ b/printing/backend/print_backend_cups.cc	2017-12-11 12:06:07.796284000 +0400
+@@ -21,6 +21,8 @@
+ #include "printing/backend/print_backend_consts.h"
+ #include "url/gurl.h"
+ 
++#include <cups/ppd.h>
++
+ namespace printing {
+ 
+ static const char kCUPSPrinterInfoOpt[] = "printer-info";
+--- a/third_party/WebKit/Source/web/web.gyp	2017-12-15 22:00:20.235435000 +0400
++++ b/third_party/WebKit/Source/web/web.gyp	2017-12-15 22:02:08.854150000 +0400
+@@ -70,6 +70,7 @@
+                 '<(DEPTH)/v8/tools/gyp/v8.gyp:v8',
+             ],
+             'include_dirs': [
++                '<(angle_path)/../icu/source/i18n', '<(angle_path)/../icu/source/common',
+                 '<(angle_path)/include',
+                 '<(DEPTH)/third_party/skia/include/utils',
+             ],
+--- a/third_party/WebKit/Source/modules/modules.gyp	2017-12-15 21:59:28.789236000 +0400
++++ b/third_party/WebKit/Source/modules/modules.gyp	2017-12-15 22:01:45.170200000 +0400
+@@ -46,6 +46,9 @@
+       '../config.gyp:config',
+       'modules_generated.gyp:make_modules_generated',
+     ],
++    'include_dirs': [
++      '<(angle_path)/../icu/source/i18n', '<(angle_path)/../icu/source/common',
++    ],
+     'defines': [
+       'BLINK_IMPLEMENTATION=1',
+       'INSIDE_BLINK',
+--- a/ppapi/ppapi_internal.gyp	2016-01-14 03:05:04.000000000 +0400
++++ b/ppapi/ppapi_internal.gyp	2017-12-16 02:34:55.203894000 +0400
+@@ -103,6 +103,9 @@
+           'variables': {
+             'ppapi_proxy_target': 1,
+           },
++          'include_dirs': [
++            '<(angle_path)/../icu/source/i18n', '<(angle_path)/../icu/source/common',
++          ],
+           'dependencies': [
+             '../base/base.gyp:base',
+             '../base/third_party/dynamic_annotations/dynamic_annotations.gyp:dynamic_annotations',
+--- a/content/content_child.gypi	2016-01-14 04:27:04.000000000 +0400
++++ b/content/content_child.gypi	2017-12-16 02:35:54.397834000 +0400
+@@ -20,6 +20,7 @@
+     'content_common_mojo_bindings.gyp:content_common_mojo_bindings',
+   ],
+   'include_dirs': [
++    '<(angle_path)/../icu/source/i18n', '<(angle_path)/../icu/source/common',
+     '..',
+   ],
+   'export_dependent_settings': [
+--- a/content/content_browser.gypi	2017-12-15 21:23:45.472456000 +0400
++++ b/content/content_browser.gypi	2017-12-16 02:38:05.162699000 +0400
+@@ -59,6 +59,7 @@
+     'content_common_mojo_bindings.gyp:content_common_mojo_bindings',
+   ],
+   'include_dirs': [
++    '<(angle_path)/../icu/source/i18n', '<(angle_path)/../icu/source/common',
+     '..',
+     '<(INTERMEDIATE_DIR)',
+   ],
+--- a/content/content_renderer.gypi	2017-12-17 21:14:59.684272000 +0400
++++ b/content/content_renderer.gypi	2017-12-17 21:15:45.088018000 +0400
+@@ -44,6 +44,7 @@
+     'content_common_mojo_bindings.gyp:content_common_mojo_bindings',
+   ],
+   'include_dirs': [
++    '<(angle_path)/../icu/source/i18n', '<(angle_path)/../icu/source/common',
+     '..',
+     '<(SHARED_INTERMEDIATE_DIR)',  # Needed by key_systems.cc.
+   ],
+--- a/third_party/angle/src/angle.gyp	2017-12-17 15:23:51.834758000 +0400
++++ b/third_party/angle/src/angle.gyp	2017-12-17 15:24:13.505050000 +0400
+@@ -59,6 +59,7 @@
+             [
+                 '.',
+                 '../include',
++                '/usr/local/include',
+             ],
+             'direct_dependent_settings':
+             {
+--- a/third_party/angle/src/compiler.gypi	2017-12-17 15:41:03.297109000 +0400
++++ b/third_party/angle/src/compiler.gypi	2017-12-17 15:48:18.438214000 +0400
+@@ -230,6 +230,7 @@
+             [
+                 '.',
+                 '../include',
++                '/usr/local/include',
+             ],
+             'defines':
+             [

@@ -1,0 +1,80 @@
+diff --git a/script/download b/script/download
+index 5fa3efb..1f6a7f4 100755
+--- a/script/download
++++ b/script/download
+@@ -18,6 +18,7 @@ PLATFORM_KEY = {
+   'cygwin': 'win',
+   'darwin': 'osx',
+   'linux2': 'linux',
++  'freebsd11': 'freebsd',
+   'win32': 'win',
+ }[sys.platform]
+ 
+@@ -57,11 +58,11 @@ def main():
+       else:
+         platform = PLATFORM_KEY
+       base_url = '{0}/{1}/{2}'.format(args.url, platform, args.target_arch)
+-      download_if_needed(args.path, base_url, commit, SHARED_LIBRARY_FILENAME,
+-                         args.force)
+-      if (args.static and
+-          not os.path.exists(os.path.join(args.path, 'static_library'))):
+-        download(args.path, base_url, commit, STATIC_LIBRARY_FILENAME)
++      #download_if_needed(args.path, base_url, commit, SHARED_LIBRARY_FILENAME,
++      #                   args.force)
++      #if (args.static and
++      #  not os.path.exists(os.path.join(args.path, 'static_library'))):
++      #  download(args.path, base_url, commit, STATIC_LIBRARY_FILENAME)
+       generate_filenames_gypi(os.path.join(args.path, 'filenames.gypi'),
+                               os.path.join(args.path, 'src'),
+                               os.path.join(args.path, 'shared_library'),
+diff --git a/tools/generate_filenames_gypi.py b/tools/generate_filenames_gypi.py
+index 9cc5861..887fa8b 100755
+--- a/tools/generate_filenames_gypi.py
++++ b/tools/generate_filenames_gypi.py
+@@ -9,17 +9,20 @@ TARGET_PLATFORM = {
+   'cygwin': 'win32',
+   'darwin': 'darwin',
+   'linux2': 'linux',
++  'freebsd11': 'freebsd',
+   'win32': 'win32',
+ }[sys.platform]
+ 
+ SHARED_LIBRARY_SUFFIX = {
+   'darwin': 'dylib',
+   'linux': 'so',
++  'freebsd': 'so',
+   'win32': 'dll',
+ }[TARGET_PLATFORM]
+ STATIC_LIBRARY_SUFFIX = {
+   'darwin': 'a',
+   'linux': 'a',
++  'freebsd': 'a',
+   'win32': 'lib',
+ }[TARGET_PLATFORM]
+ 
+@@ -31,6 +34,10 @@ EXCLUDE_SHARED_LIBRARIES = {
+     'libwidevinecdm.so',
+     'libwidevinecdmadapter.so',
+   ],
++  'freebsd': [
++    'libwidevinecdm.so',
++    'libwidevinecdmadapter.so',
++  ],
+   'win32': [
+     'd3dcompiler_47.dll',
+     'libEGL.dll',
+@@ -53,6 +60,14 @@ EXCLUDE_STATIC_LIBRARIES = {
+     'libv8_nosnapshot.a',
+     'libtranslator_static.a',
+   ],
++  'freebsd': [
++    'libffmpeg_yasm.a',
++    'libppapi_cpp.a',
++    'libprotobuf_full_do_not_use.a',
++    'libgenperf_libs.a',
++    'libv8_nosnapshot.a',
++    'libtranslator_static.a',
++  ],
+   'win32': [
+     'ffmpeg.dll.lib',
+     'ffmpeg_yasm.lib',

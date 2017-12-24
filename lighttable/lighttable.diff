@@ -1,0 +1,92 @@
+--- a/script/build.sh	2017-12-12 16:29:55.937654000 +0400
++++ b/script/build.sh	2017-12-12 16:30:09.118056000 +0400
+@@ -20,10 +20,10 @@
+ cd "$(dirname "${BASH_SOURCE[0]}")"; cd ..
+ 
+ # Ensure we have current version of electron
+-pushd deploy/electron
+-  npm install
+-  node_modules/.bin/grunt download-electron
+-popd
++#pushd deploy/electron
++#  npm install
++#  node_modules/.bin/grunt download-electron
++#popd
+ 
+ # Build the core cljs
+ 
+--- a/script/build-app.sh	2017-12-12 16:30:24.247452000 +0400
++++ b/script/build-app.sh	2017-12-12 16:53:05.625009000 +0400
+@@ -20,6 +20,11 @@
+   RESOURCES="Electron.app/Contents/Resources"
+   PLATFORM_DIR="deploy/platform/mac"
+ 
++elif [ "$(uname)" == "FreeBSD" ]; then
++  OS="freebsd"
++  RESOURCES="resources"
++  PLATFORM_DIR="deploy/platform/freebsd"
++
+ elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
+   OS="linux"
+   RESOURCES="resources"
+@@ -97,6 +102,12 @@
+ 
+   mv $RELEASE_DIR/electron $RELEASE_DIR/LightTable
+ 
++elif [ "$OS" == "freebsd" ]; then
++
++  cp $PLATFORM_DIR/light $RELEASE_DIR/
++
++  mv $RELEASE_DIR/electron $RELEASE_DIR/LightTable
++
+ elif [ "$OS" == "windows" ]; then
+ 
+   mv $RELEASE_DIR/electron.exe $RELEASE_DIR/LightTable.exe
+--- a/src/lt/objs/platform.cljs	2017-12-18 08:56:50.978280000 +0400
++++ b/src/lt/objs/platform.cljs	2017-12-18 08:57:55.677382000 +0400
+@@ -17,6 +17,7 @@
+   (condp = plat
+     "win32" :windows
+     "linux" :linux
++    "freebsd" :linux
+     "darwin" :mac))
+ 
+ (defn open-url [path]
+--- a/deploy/platform/freebsd/light	2017-12-12 16:26:42.470620000 +0400
++++ b/deploy/platform/freebsd/light	2017-12-12 16:27:21.030937000 +0400
+@@ -3,35 +3,5 @@
+ BIN=LightTable
+ HERE=`dirname $(readlink -f $0)`
+ 
+-LIBUDEV_0=libudev.so.0
+-LIBUDEV_1=libudev.so.1
+-
+-add_udev_symlinks() {
+-  # look for libudev.so.0, and if that can't be found link it to libudev.so.1
+-  # detect 64-bit or default to 32-bit
+-  if [ $(getconf LONG_BIT) == "64" ]; then
+-    FOLDERS="/lib64 /lib/x86_64-linux-gnu /usr/lib/x86_64-linux-gnu /usr/lib64 /usr/lib /lib"
+-  else
+-    FOLDERS="/lib /lib/i386-linux-gnu /usr/lib /usr/lib/i386-linux-gnu"
+-  fi
+-
+-  for folder in $FOLDERS; do
+-    if [ -f "${folder}/${LIBUDEV_0}" ]; then
+-      return 0
+-    fi
+-  done
+-
+-  for folder in $FOLDERS; do
+-    if [ -f "${folder}/${LIBUDEV_1}" ]; then
+-      ln -snf "${folder}/${LIBUDEV_1}" "${HERE}/${LIBUDEV_0}"
+-      return 0
+-    fi
+-  done
+-
+-  echo "${LIBUDEV_0} or ${LIBUDEV_1} not found in any of ${FOLDERS}".
+-  exit 1
+-}
+-
+-add_udev_symlinks
+ 
+ LD_LIBRARY_PATH="$HERE:$LD_LIBRARY_PATH" $HERE/$BIN "$@" &

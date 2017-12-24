@@ -1,0 +1,130 @@
+--- a/third_party/angle/src/third_party/libXNVCtrl/BUILD.gn	2017-11-25 15:19:45.500682000 +0400
++++ b/third_party/angle/src/third_party/libXNVCtrl/BUILD.gn	2017-11-25 15:20:25.698303000 +0400
+@@ -11,6 +11,7 @@
+   cflags = [
+     "-Wno-incompatible-pointer-types-discards-qualifiers",
+   ]
++  include_dirs = [ "/usr/local/include", ]
+ }
+ 
+ source_set("libXNVCtrl") {
+--- a/base/BUILD.gn	2017-12-07 09:33:24.833612000 +0400
++++ b/base/BUILD.gn	2017-12-07 11:26:52.052188000 +0400
+@@ -1385,7 +1385,11 @@
+     # TODO(brettw) this will need to be parameterized at some point.
+     linux_configs = []
+     if (use_glib) {
+-      linux_configs += [ "//build/config/linux:glib" ]
++      #linux_configs += [ "//build/config/linux:glib" ]
++      lib_dirs = [ " -L/usr/local/lib", ]
++      ldflags = [ "-L/usr/local/lib", ]
++      libs += [ "gmodule-2.0", "glib-2.0", "gobject-2.0", "gthread-2.0", "intl", ]
++      include_dirs = [ "/usr/local/include/glib-2.0", "/usr/local/lib/glib-2.0/include", "../../third_party/ced/src", "../../third_party/icu/source/common", "../../third_party/icu/source/i18n", ]
+     }
+ 
+     defines += [ "USE_SYMBOLIZE" ]
+--- a/third_party/iccjpeg/BUILD.gn	2017-11-25 15:29:43.897890000 +0400
++++ b/third_party/iccjpeg/BUILD.gn	2017-11-25 15:30:07.905164000 +0400
+@@ -3,7 +3,7 @@
+ # found in the LICENSE file.
+ 
+ config("iccjpeg_config") {
+-  include_dirs = [ "." ]
++  include_dirs = [ ".", "/usr/local/include", ]
+ }
+ 
+ static_library("iccjpeg") {
+--- a/net/BUILD.gn	2017-12-07 10:15:23.451210000 +0400
++++ b/net/BUILD.gn	2017-12-07 10:15:46.746996000 +0400
+@@ -56,7 +56,9 @@
+     "DLOPEN_KERBEROS",
+     "NET_IMPLEMENTATION",
+   ]
+-
++  
++  include_dirs = [ "../third_party/icu/source/common", "../third_party/icu/source/i18n", ]
++  
+   if (use_kerberos) {
+     defines += [ "USE_KERBEROS" ]
+     if (is_android) {
+diff -ru a/ui/base/BUILD.gn b/ui/base/BUILD.gn
+--- a/ui/base/BUILD.gn	2017-11-22 15:29:27.281974000 +0400
++++ b/ui/base/BUILD.gn	2017-11-22 15:42:48.106063000 +0400
+@@ -57,6 +57,7 @@
+ }
+ 
+ component("base") {
++  include_dirs = [ "../../third_party/icu/source/common", "../../third_party/icu/source/i18n" ]
+   output_name = "ui_base"
+ 
+   sources = [
+--- a/ui/gfx/BUILD.gn	2017-11-29 15:16:04.473199000 +0400
++++ b/ui/gfx/BUILD.gn	2017-11-29 15:27:26.314798000 +0400
+@@ -22,6 +22,7 @@
+ }
+ 
+ component("gfx") {
++  include_dirs = [ "../../third_party/icu/source/common", "../../third_party/icu/source/i18n" ]
+   sources = [
+     "android/gfx_jni_registrar.cc",
+     "android/gfx_jni_registrar.h",
+--- a/third_party/angle/BUILD.gn	2017-12-07 10:17:28.173838000 +0400
++++ b/third_party/angle/BUILD.gn	2017-12-07 10:19:34.775409000 +0400
+@@ -343,11 +343,7 @@
+     if (is_win) {
+       sources += rebase_path(gles_gypi.libangle_gl_wgl_sources, ".", "src")
+     }
+-    if (use_x11) {
+-      sources += rebase_path(gles_gypi.libangle_gl_glx_sources, ".", "src")
+-      deps += [ "src/third_party/libXNVCtrl:libXNVCtrl" ]
+-      configs += [ ":x11" ]
+-    }
++    
+     if (is_mac) {
+       sources += rebase_path(gles_gypi.libangle_gl_cgl_sources, ".", "src")
+       libs += [
+@@ -398,7 +394,13 @@
+     ":libANGLE_config",
+     ":internal_config",
+   ]
+-
++  
++  if (use_x11) {
++      sources += rebase_path(gles_gypi.libangle_gl_glx_sources, ".", "src")
++      deps += [ "src/third_party/libXNVCtrl:libXNVCtrl" ]
++      configs += [ ":x11" ]
++  }
++    
+   if (is_win) {
+     data_deps = [
+       ":copy_compiler_dll",
+--- a/build/toolchain/gcc_toolchain.gni	2017-12-06 12:07:20.838496000 +0400
++++ b/build/toolchain/gcc_toolchain.gni	2017-12-06 12:07:54.675669000 +0400
+@@ -488,12 +488,12 @@
+ 
+   gcc_toolchain(target_name) {
+     if (is_bsd) {
+-      cc = "${toolprefix}clang39"
+-      cxx = "${toolprefix}clang++39"
++      cc = "${toolprefix}clang40"
++      cxx = "${toolprefix}clang++40"
+       ld = cxx
+       readelf = "readelf"
+-      ar = "${toolprefix}llvm-ar39"
+-      nm = "${toolprefix}llvm-nm39"
++      ar = "${toolprefix}llvm-ar40"
++      nm = "${toolprefix}llvm-nm40"
+     } else {
+       prefix = rebase_path("$clang_base_path/bin", root_build_dir)
+       cc = "$prefix/clang"
+--- a/services/tracing/BUILD.gn	2017-12-06 13:53:11.242661000 +0400
++++ b/services/tracing/BUILD.gn	2017-12-06 13:53:22.996087000 +0400
+@@ -11,7 +11,7 @@
+   ]
+ 
+   avoid_runner_cycle = true
+-
++  ldflags = [ "-L/usr/local/lib", ]
+   deps = [
+     ":lib",
+     "//mojo/public/cpp/system",

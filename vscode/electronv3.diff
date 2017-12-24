@@ -726,13 +726,14 @@ diff --git a/script/create-dist.py b/script/create-dist.py
 index 9d97744..3bdb266 100755
 --- a/script/create-dist.py
 +++ b/script/create-dist.py
-@@ -61,6 +61,19 @@
+@@ -61,6 +61,20 @@
      'natives_blob.bin',
      'snapshot_blob.bin',
    ],
 +   'freebsd': [
 +    PROJECT_NAME,  # 'electron'
 +    'content_shell.pak',
++    'pdf_viewer_resources.pak',
 +    'icudtl.dat',
 +    'libffmpeg.so',
 +    'libnode.so',

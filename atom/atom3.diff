@@ -1,0 +1,223 @@
+--- a/node_modules/nslog/binding.gyp	2017-12-08 22:07:06.169379000 +0400
++++ b/node_modules/nslog/binding.gyp	2017-12-08 22:07:21.419210000 +0400
+@@ -37,6 +37,11 @@
+             'src/nslog_linux.cc',
+           ],
+         }],
++        ['OS=="freebsd"', {
++          'sources': [
++            'src/nslog_linux.cc',
++          ],
++        }],
+       ],
+     }
+   ]
+--- a/node_modules/keyboard-layout/binding.gyp	2017-12-08 22:10:37.073952000 +0400
++++ b/node_modules/keyboard-layout/binding.gyp	2017-12-08 22:31:06.804238000 +0400
+@@ -49,6 +49,19 @@
+             ]
+           }
+         }],  # OS=="linux"
++        ['OS=="freebsd"', {
++          "sources": [
++            "src/keyboard-layout-manager-linux.cc",
++          ],
++          "include_dirs": [ 
++            "/usr/local/include" 
++          ],
++          "link_settings": {
++            "libraries": [
++              "-L/usr/local/lib", "-lX11", "-lxkbfile"
++            ]
++          }
++        }],  # OS=="linux"
+       ]
+     }
+   ]
+--- a/node_modules/keyboard-layout/src/keyboard-layout-manager.h	2017-12-08 22:30:01.335245000 +0400
++++ b/node_modules/keyboard-layout/src/keyboard-layout-manager.h	2017-12-08 22:30:44.572232000 +0400
+@@ -3,7 +3,7 @@
+ 
+ #include "nan.h"
+ 
+-#ifdef __linux__
++#if defined(__linux__) || defined(__FreeBSD__)
+ #include <X11/Xlib.h>
+ #endif // __linux__
+ 
+@@ -21,7 +21,7 @@
+   static NAN_METHOD(GetInstalledKeyboardLanguages);
+   static NAN_METHOD(GetCurrentKeymap);
+ 
+-#ifdef __linux__
++#if defined(__linux__) || defined(__FreeBSD__)
+   Display *xDisplay;
+   XIC xInputContext;
+   XIM xInputMethod;
+--- a/node_modules/scrollbar-style/binding.gyp	2017-12-08 22:35:14.900905000 +0400
++++ b/node_modules/scrollbar-style/binding.gyp	2017-12-08 22:35:40.826235000 +0400
+@@ -38,6 +38,11 @@
+             "src/scrollbar-style-observer-non-mac.cc",
+           ],
+         }],  # OS=="linux"
++        ['OS=="freebsd"', {
++          "sources": [
++            "src/scrollbar-style-observer-non-mac.cc",
++          ],
++        }],  # OS=="freebsd"
+       ]
+     }
+   ]
+--- a/node_modules/dugite/build/lib/git-environment.js	2017-12-09 11:14:54.095508000 +0400
++++ b/node_modules/dugite/build/lib/git-environment.js	2017-12-09 11:38:53.315538000 +0400
+@@ -17,6 +17,9 @@
+     if (process.env.LOCAL_GIT_DIRECTORY) {
+         return path.resolve(process.env.LOCAL_GIT_DIRECTORY);
+     }
++    else if (process.platform === 'freebsd') {
++		return '/usr/local'
++	}
+     else {
+         return resolveEmbeddedGitDir();
+     }
+@@ -26,7 +29,7 @@
+  */
+ function resolveGitBinary() {
+     const gitDir = resolveGitDir();
+-    if (process.platform === 'darwin' || process.platform === 'linux') {
++    if (process.platform === 'darwin' || process.platform === 'linux' || process.platform === 'freebsd') {
+         return path.join(gitDir, 'bin', 'git');
+     }
+     else if (process.platform === 'win32') {
+@@ -45,7 +48,7 @@
+         return path.resolve(process.env.GIT_EXEC_PATH);
+     }
+     const gitDir = resolveGitDir();
+-    if (process.platform === 'darwin' || process.platform === 'linux') {
++    if (process.platform === 'darwin' || process.platform === 'linux' || process.platform === 'freebsd') {
+         return path.join(gitDir, 'libexec', 'git-core');
+     }
+     else if (process.platform === 'win32') {
+@@ -82,7 +85,7 @@
+             delete env.Path;
+         }
+     }
+-    if (process.platform === 'darwin' || process.platform === 'linux') {
++    if (process.platform === 'darwin' || process.platform === 'linux' || process.platform === 'freebsd') {
+         // templates are used to populate your .git folder
+         // when a repository is initialized locally
+         const templateDir = `${gitDir}/share/git-core/templates`;
+diff --git a/script/lib/check-chromedriver-version.js b/script/lib/check-chromedriver-version.js
+index 1659f093c..851f3327e 100644
+--- a/script/lib/check-chromedriver-version.js
++++ b/script/lib/check-chromedriver-version.js
+@@ -10,24 +10,5 @@ module.exports = function () {
+   const mksnapshotVer = buildMetadata.dependencies['electron-mksnapshot']
+ 
+   // Always use tilde on electron-chromedriver so that it can pick up the best patch version
+-  if (!chromedriverVer.startsWith('~')) {
+-    throw new Error(`electron-chromedriver version in script/package.json should start with a tilde to match latest patch version.`)
+-  }
+-
+-  if (!mksnapshotVer.startsWith('~')) {
+-    throw new Error(`electron-mksnapshot version in script/package.json should start with a tilde to match latest patch version.`)
+-  }
+-
+-  const electronVer = CONFIG.appMetadata.electronVersion
+-  if (!semver.satisfies(electronVer, chromedriverVer)) {
+-    throw new Error(`electron-chromedriver ${chromedriverVer} incompatible with electron ${electronVer}.\n` +
+-                    'Did you upgrade electron in package.json and forget to upgrade electron-chromedriver in ' +
+-                    `script/package.json to '~${semver.major(electronVer)}.${semver.minor(electronVer)}' ?`)
+-  }
+-
+-  if (!semver.satisfies(electronVer, mksnapshotVer)) {
+-    throw new Error(`electron-mksnapshot ${mksnapshotVer} incompatible with electron ${electronVer}.\n` +
+-                    'Did you upgrade electron in package.json and forget to upgrade electron-mksnapshot in ' +
+-                    `script/package.json to '~${semver.major(electronVer)}.${semver.minor(electronVer)}' ?`)
+-  }
++ 
+ }
+diff --git a/script/lib/dump-symbols.js b/script/lib/dump-symbols.js
+index 6b0b10bef..4ed57f6d7 100644
+--- a/script/lib/dump-symbols.js
++++ b/script/lib/dump-symbols.js
+@@ -6,7 +6,7 @@ const path = require('path')
+ 
+ const CONFIG = require('../config')
+ module.exports = function () {
+-  if (process.platform === 'win32') {
++  if (process.platform === 'win32' || process.platform === 'freebsd') {
+     console.log('Skipping symbol dumping because minidump is not supported on Windows'.gray)
+     return Promise.resolve()
+   } else {
+--- a/script/node_modules/electron-packager/index.js	2017-12-09 15:14:33.273907000 +0400
++++ b/script/node_modules/electron-packager/index.js	2017-12-09 12:57:29.690386000 +0400
+@@ -19,6 +19,7 @@
+   // Maps to module ID for each platform (lazy-required if used)
+   darwin: './mac',
+   linux: './linux',
++  freebsd: './linux',
+   mas: './mac', // map to darwin
+   win32: './win32'
+ }
+diff --git a/src/atom-paths.js b/src/atom-paths.js
+index 39a768e91..28b479604 100644
+--- a/src/atom-paths.js
++++ b/src/atom-paths.js
+@@ -19,6 +19,7 @@ const getAppDirectory = () => {
+     case 'darwin':
+       return process.execPath.substring(0, process.execPath.indexOf('.app') + 4)
+     case 'linux':
++    case 'freebsd':
+     case 'win32':
+       return path.join(process.execPath, '..')
+   }
+diff --git a/src/crash-reporter-start.js b/src/crash-reporter-start.js
+index 035a94e3d..3e2716270 100644
+--- a/src/crash-reporter-start.js
++++ b/src/crash-reporter-start.js
+@@ -1,10 +1,3 @@
+ module.exports = function (extra) {
+-  const {crashReporter} = require('electron')
+-  crashReporter.start({
+-    productName: 'Atom',
+-    companyName: 'GitHub',
+-    submitURL: 'https://crashreporter.atom.io',
+-    uploadToServer: false,
+-    extra: extra
+-  })
++  
+ }
+diff --git a/src/update-process-env.js b/src/update-process-env.js
+index 00bb13927..e8ae4ae99 100644
+--- a/src/update-process-env.js
++++ b/src/update-process-env.js
+@@ -12,7 +12,8 @@ const ENVIRONMENT_VARIABLES_TO_PRESERVE = new Set([
+ 
+ const PLATFORMS_KNOWN_TO_WORK = new Set([
+   'darwin',
+-  'linux'
++  'linux',
++  'freebsd'
+ ])
+ 
+ async function updateProcessEnv (launchEnv) {
+--- a/node_modules/github/package.json	2017-12-13 21:03:46.089828000 +0400
++++ b/node_modules/github/package.json	2017-12-13 21:10:17.926552000 +0400
+@ -134,7 +134,6 @@
+     "compare-sets": "^1.0.1",
+     "core-decorators": "^0.19.0",
+     "diff": "3.2.0",
+-    "dugite": "1.49.0",
+     "etch": "^0.12.4",
+     "event-kit": "^2.3.0",
+     "fs-extra": "^2.1.2",
+@@ -146,7 +145,6 @@
+     "moment": "^2.17.1",
+     "multi-list-selection": "^0.1.1",
+     "ncp": "^2.0.0",
+-    "nsfw": "1.0.16",
+     "prop-types": "^15.5.8",
+     "react": "^15.6.1",
+     "react-dom": "^15.6.1",
+

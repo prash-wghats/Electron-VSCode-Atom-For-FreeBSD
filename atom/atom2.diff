@@ -1,0 +1,23 @@
+--- a/apm/node_modules/atom-package-manager/bin/npm	2017-12-17 21:03:29.225903000 +0400
++++ b/apm/node_modules/atom-package-manager/bin/npm	2017-12-17 19:48:57.249851000 +0400
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+ export PATH="$SCRIPT_DIR:$PATH"
+ 
+--- a/apm/node_modules/atom-package-manager/bin/apm	2017-12-13 10:55:03.361713000 +0400
++++ b/apm/node_modules/atom-package-manager/bin/apm	2017-12-13 10:56:44.871609000 +0400
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ set -e
+ 
+--- a/apm/node_modules/atom-package-manager/bin/python-interceptor.sh	2017-12-13 10:57:38.300090000 +0400
++++ b/apm/node_modules/atom-package-manager/bin/python-interceptor.sh	2017-12-13 10:57:59.726236000 +0400
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"

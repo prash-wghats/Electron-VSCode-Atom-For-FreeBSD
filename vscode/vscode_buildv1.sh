@@ -39,6 +39,7 @@ patch  -p1  --ignore-whitespace < ../electron_node_modules.diff
 mkdir vendor/download/libchromiumcontent
 unzip ../libchromiumcontent/libchromiumcontent.zip -d vendor/download/libchromiumcontent/
 unzip ../libchromiumcontent/libchromiumcontent-static.zip -d vendor/download/libchromiumcontent/
+cp ../pdf_viewer_resources.pak vendor/download/libchromiumcontent/static_library/.
 script/bootstrap.py -v --clang_dir=/usr
 script/build.py -c R
 script/create-dist.py
@@ -52,14 +53,14 @@ git checkout 1.17.2
 patch -p1  < ../vscodev1.diff
 scripts/npm.sh install --arch=x64
 tar -xvf ../nsfw_stub.tar.gz -C node_modules/
-#cd node_modules/nsfw/
-#node /usr/local/lib/node_modules/npm/node_modules/node-gyp/bin/node-gyp.js rebuild
-#cd ../..
+cd node_modules/nsfw/
+node /usr/local/lib/node_modules/npm/node_modules/node-gyp/bin/node-gyp.js --nodedir ~/.electron-gyp/.node-gyp/iojs-1.7.7 rebuild
+cd ../..
 mkdir build/lib/watch/node_modules
 tar -xvf ../nsfw_stub.tar.gz -C build/lib/watch/node_modules/
-#cd build/lib/watch/node_modules/nsfw/
-#node /usr/local/lib/node_modules/npm/node_modules/node-gyp/bin/node-gyp.js rebuild
-#cd ../../../../../
+cd build/lib/watch/node_modules/nsfw/
+node /usr/local/lib/node_modules/npm/node_modules/node-gyp/bin/node-gyp.js rebuild
+cd ../../../../../
 scripts/npm.sh install --arch=x64
 #git clone https://github.com/roblourens/ripgrep.git
 #git checkout 0.5.1-patch.0

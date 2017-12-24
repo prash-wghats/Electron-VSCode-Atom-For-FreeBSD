@@ -1,0 +1,127 @@
+diff -ur a/chromiumcontent/chromiumcontent.gyp b/chromiumcontent/chromiumcontent.gyp
+--- a/chromiumcontent/chromiumcontent.gyp	2016-10-06 22:17:31.590038000 +0400
++++ b/chromiumcontent/chromiumcontent.gyp	2016-10-06 22:20:09.221832000 +0400
+@@ -20,6 +20,11 @@
+             'chromiumviews',
+           ],
+         }],
++        ['OS=="freebsd"', {
++          'dependencies': [
++            'chromiumviews',
++          ],
++       }],
+       ],
+     },
+     {
+@@ -58,7 +63,7 @@
+     },
+   ],
+   'conditions': [
+-    ['OS in ["win", "linux"]', {
++    ['OS in ["win", "linux", "freebsd"]', {
+       'targets': [
+         {
+           'target_name': 'chromiumviews',
+@@ -72,7 +77,7 @@
+             '<(DEPTH)/ui/wm/wm.gyp:wm',
+           ],
+           'conditions': [
+-            ['OS=="linux"', {
++            ['OS=="linux" or OS=="freebsd"', {
+               'dependencies': [
+                 '<(DEPTH)/chrome/browser/ui/libgtk2ui/libgtk2ui.gyp:gtk2ui',
+               ],
+diff -ur a/patches/allow_new_privs.patch b/patches/allow_new_privs.patch
+--- a/patches/allow_new_privs.patch	2016-10-06 21:53:12.121271000 +0400
++++ b/patches/allow_new_privs.patch	2016-10-06 21:53:35.226768000 +0400
+@@ -4,10 +4,10 @@
+ +++ b/base/process/launch.cc
+ @@ -27,7 +27,7 @@ LaunchOptions::LaunchOptions()
+        new_process_group(false)
+- #if defined(OS_LINUX)
++ #if defined(OS_LINUX) || defined(OS_FREEBSD)
+        , clone_flags(0)
+ -      , allow_new_privs(false)
+ +      , allow_new_privs(true)
+        , kill_on_parent_death(false)
+- #endif  // OS_LINUX
++ #endif  // OS_LINUX || OS_FREEBSD
+  #if defined(OS_POSIX)
+diff -ur a/script/create-dist b/script/create-dist
+--- a/script/create-dist	2017-12-11 15:41:50.837635000 +0400
++++ b/script/create-dist	2017-12-11 15:50:12.929231000 +0400
+@@ -30,17 +30,20 @@
+   'cygwin': 'win32',
+   'darwin': 'darwin',
+   'linux2': 'linux',
++  'freebsd11': 'freebsd',
+   'win32': 'win32',
+ }[sys.platform]
+ 
+ SHARED_LIBRARY_SUFFIX = {
+   'darwin': 'dylib',
+   'linux': 'so',
++  'freebsd': 'so',
+   'win32': 'dll',
+ }[TARGET_PLATFORM]
+ STATIC_LIBRARY_SUFFIX = {
+   'darwin': 'a',
+   'linux': 'a',
++  'freebsd': 'a',
+   'win32': 'lib',
+ }[TARGET_PLATFORM]
+ 
+@@ -87,6 +90,24 @@
+     'libsystem_wrappers.a',
+     'libcdm_renderer.a',
+   ],
++  'freebsd': [
++    'chromedriver',
++    'mksnapshot',
++    #'libosmesa.so',
++    'libgtk2ui.a',
++    'libdevtools_discovery.a',
++    'libdevtools_http_handler.a',
++    'libhttp_server.a',
++    'libdesktop_capture.a',
++    'libdesktop_capture_differ_sse2.a',
++    'librtc_base.a',
++    'librtc_base_approved.a',
++    'libwebrtc_common.a',
++    'libyuv.a',
++    #'libyuv_neon.a',
++    'libsystem_wrappers.a',
++    'libcdm_renderer.a',
++  ],
+   'win32': [
+     'chromedriver.exe',
+     'd3dcompiler_47.dll',
+@@ -199,6 +220,10 @@
+     'dbus',
+     'third_party/speech-dispatcher',
+   ],
++  'freebsd': [
++    'dbus',
++    'third_party/speech-dispatcher',
++  ],
+   'win32': [],
+ }[TARGET_PLATFORM]
+ GENERATED_INCLUDE_DIRS = [
+@@ -300,7 +325,7 @@
+         for filename in fnmatch.filter(filenames, '*.pdb'):
+           shutil.copy2(os.path.join(root, filename), target_dir)
+ 
+-  if TARGET_PLATFORM == 'linux':
++  if TARGET_PLATFORM == 'linux' or TARGET_PLATFORM == 'freebsd':
+     if component == 'shared_library':
+       # out/Release/lib/*.so
+       for library in glob.glob(os.path.join(config_dir, 'lib', '*.so')):
+@@ -310,7 +335,7 @@
+       for library in glob.glob(os.path.join(config_dir, '*.a')):
+         shutil.copy2(library, target_dir)
+ 
+-  if TARGET_PLATFORM in ['linux', 'darwin']:
++  if TARGET_PLATFORM in ['linux', 'darwin', 'freebsd']:
+     # Strip the copied binaries since they contain quite large debug info.
+     for binary in BINARIES[TARGET_PLATFORM]:
+       run_strip(target_arch, os.path.join(target_dir, os.path.basename(binary)))

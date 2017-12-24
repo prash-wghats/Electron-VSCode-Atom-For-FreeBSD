@@ -1,0 +1,66 @@
+--- a/Makefile	2017-12-11 15:37:48.731928000 +0400
++++ b/Makefile	2017-12-11 15:39:00.593109000 +0400
+@@ -40,11 +40,9 @@
+ 		libgcrypt.so:${PORTSDIR}/security/libgcrypt \
+ 		libpci.so:${PORTSDIR}/devel/libpci \
+ 		libdrm.so:${PORTSDIR}/graphics/libdrm \
+-		libicuuc.so:${PORTSDIR}/devel/icu \
+ 		libjsoncpp.so:${PORTSDIR}/devel/jsoncpp \
+ 		libnspr4.so:${PORTSDIR}/devel/nspr \
+ 		libpng.so:${PORTSDIR}/graphics/png \
+-		libre2.so:${PORTSDIR}/devel/re2 \
+ 		libsnappy.so:${PORTSDIR}/archivers/snappy \
+ 		libspeechd.so:${PORTSDIR}/accessibility/speech-dispatcher \
+ 		libspeex.so:${PORTSDIR}/audio/speex \
+@@ -98,7 +98,7 @@
+ 		use_system_bzip2=1 \
+ 		use_system_flac=1 \
+ 		use_system_harfbuzz=1 \
+-		use_system_icu=1 \
++		use_system_icu=0 \
+ 		use_system_jsoncpp=1 \
+ 		use_system_libevent=1 \
+ 		use_system_libexif=1 \
+@@ -110,12 +110,12 @@
+ 		use_system_libxslt=1 \
+ 		use_system_nspr=1 \
+ 		use_system_protobuf=0 \
+-		use_system_re2=1 \
++		use_system_re2=0 \
+ 		use_system_snappy=1 \
+ 		use_system_speex=1 \
+ 		use_system_xdg_utils=1 \
+ 		use_system_yasm=1 \
+-		v8_use_external_startup_data=0
++		v8_use_external_startup_data=1
+ # allow removal of third_party/adobe
+ GYP_DEFINES+=	flapper_version_h_file='${WRKSRC}/flapper_version.h'
+ 
+@@ -164,10 +164,6 @@
+ GYP_DEFINES+=	use_pulseaudio=0
+ .endif
+ 
+-.if ! ${MACHINE_CPU:Msse2}
+-GYP_DEFINES+=	disable_sse2=1
+-.endif
+-
+ .if !exists(/usr/libdata/pkgconfig/libusb-1.0.pc)
+ EXTRA_PATCHES+=	${FILESDIR}/extra-patch-libusb-pc
+ .endif
+@@ -291,7 +287,7 @@
+ 		'third_party/google_input_tools/third_party/closure_library/third_party/closure' \
+ 		'third_party/hunspell' \
+ 		'third_party/iccjpeg' \
+-		'third_party/icu/icu.isolate' \
++		'third_party/icu' \
+ 		'third_party/jinja2' \
+ 		'third_party/jstemplate' \
+ 		'third_party/khronos' \
+@@ -325,6 +321,7 @@
+ 		'third_party/pywebsocket' \
+ 		'third_party/qcms' \
+ 		'third_party/qunit' \
++		'third_party/re2' \
+ 		'third_party/readability' \
+ 		'third_party/sfntly' \
+ 		'third_party/sinonjs' \

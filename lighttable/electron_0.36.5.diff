@@ -1,0 +1,527 @@
+diff --git a/atom.gyp b/atom.gyp
+index 6cd4e7c35..68725b87c 100644
+--- a/atom.gyp
++++ b/atom.gyp
+@@ -179,7 +179,7 @@
+           ],
+         }, {
+           'dependencies': [
+-            'vendor/breakpad/breakpad.gyp:dump_syms#host',
++            #'vendor/breakpad/breakpad.gyp:dump_syms#host',
+           ],
+         }],  # OS=="win"
+         ['OS=="linux"', {
+@@ -217,6 +217,42 @@
+             },
+           ],
+         }],  # OS=="linux"
++		['OS=="freebsd"', {
++          'copies': [
++            {
++              'variables': {
++                'conditions': [
++                  ['libchromiumcontent_component', {
++                    'copied_libraries': [
++                      '<(PRODUCT_DIR)/lib/libnode.so',
++                      '<@(libchromiumcontent_shared_libraries)',
++                      '<@(libchromiumcontent_shared_v8_libraries)',
++                    ],
++                  }, {
++                    'copied_libraries': [
++                      '<(PRODUCT_DIR)/lib/libnode.so',
++                    ],
++                  }],
++                ],
++              },
++              'destination': '<(PRODUCT_DIR)',
++              'files': [
++                '<@(copied_libraries)',
++                '<(libchromiumcontent_dir)/locales',
++                '<(libchromiumcontent_dir)/icudtl.dat',
++                '<(libchromiumcontent_dir)/content_shell.pak',
++                '<(libchromiumcontent_dir)/natives_blob.bin',
++                '<(libchromiumcontent_dir)/snapshot_blob.bin',
++              ],
++            },
++            {
++              'destination': '<(PRODUCT_DIR)/resources',
++              'files': [
++                'atom/browser/default_app',
++              ]
++            },
++          ],
++        }],  # OS=="freebsd"
+       ],
+     },  # target <(project_name)
+     {
+@@ -318,6 +353,24 @@
+             'atom/common/crash_reporter/crash_reporter_mac.mm',
+           ],
+         }],  # OS=="mac" and mas_build==1
++		['OS=="freebsd"', {
++          'link_settings': {
++            'ldflags': [
++              # Make binary search for libraries under current directory, so we
++              # don't have to manually set $LD_LIBRARY_PATH:
++              # http://serverfault.com/questions/279068/cant-find-so-in-the-same-directory-as-the-executable
++              '-rpath \$$ORIGIN',
++              # Make native module dynamic loading work.
++              '-rdynamic',
++            ],
++          },
++          'sources!': [
++            'atom/common/crash_reporter/crash_reporter_linux.h',
++            'atom/common/crash_reporter/crash_reporter_linux.cc',
++            'atom/common/crash_reporter/linux/crash_dump_handler.cc',
++            'atom/common/crash_reporter/linux/crash_dump_handler.h',
++          ],
++        }],  # OS=="freebsd"  
+         ['OS=="linux"', {
+           'link_settings': {
+             'ldflags': [
+diff --git a/atom/app/atom_main.cc b/atom/app/atom_main.cc
+index 26dcb9421..db420b9d0 100644
+--- a/atom/app/atom_main.cc
++++ b/atom/app/atom_main.cc
+@@ -24,7 +24,7 @@
+ #include "content/public/app/startup_helper_win.h"
+ #include "sandbox/win/src/sandbox_types.h"
+ #include "ui/gfx/win/dpi.h"
+-#elif defined(OS_LINUX)  // defined(OS_WIN)
++#elif defined(OS_LINUX)  || defined(OS_FREEBSD) // defined(OS_WIN)
+ #include "atom/app/atom_main_delegate.h"  // NOLINT
+ #include "content/public/app/content_main.h"
+ #else  // defined(OS_LINUX)
+@@ -161,7 +161,7 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, wchar_t* cmd, int) {
+   return content::ContentMain(params);
+ }
+ 
+-#elif defined(OS_LINUX)  // defined(OS_WIN)
++#elif defined(OS_LINUX) || defined(OS_FREEBSD)// defined(OS_WIN)
+ 
+ int main(int argc, const char* argv[]) {
+   char* node_indicator = getenv("ATOM_SHELL_INTERNAL_RUN_AS_NODE");
+diff --git a/atom/app/atom_main_delegate.cc b/atom/app/atom_main_delegate.cc
+index 3bc1ac497..d50f0c97f 100644
+--- a/atom/app/atom_main_delegate.cc
++++ b/atom/app/atom_main_delegate.cc
+@@ -73,7 +73,7 @@ bool AtomMainDelegate::BasicStartupComplete(int* exit_code) {
+ 
+   // Enable convient stack printing.
+   bool enable_stack_dumping = env->HasVar("ELECTRON_ENABLE_STACK_DUMPING");
+-#if defined(DEBUG) && defined(OS_LINUX)
++#if defined(DEBUG) && (defined(OS_LINUX) || defined(OS_FREEBSD))
+   enable_stack_dumping = true;
+ #endif
+   if (enable_stack_dumping)
+diff --git a/atom/browser/api/atom_api_app.cc b/atom/browser/api/atom_api_app.cc
+index 1c5c2c04f..8aaab0d89 100644
+--- a/atom/browser/api/atom_api_app.cc
++++ b/atom/browser/api/atom_api_app.cc
+@@ -289,7 +289,7 @@ void App::SetPath(mate::Arguments* args,
+ }
+ 
+ void App::SetDesktopName(const std::string& desktop_name) {
+-#if defined(OS_LINUX)
++#if defined(OS_LINUX) || defined(OS_FREEBSD)
+   scoped_ptr<base::Environment> env(base::Environment::Create());
+   env->SetVar("CHROME_DESKTOP", desktop_name);
+ #endif
+diff --git a/atom/browser/atom_browser_main_parts_posix.cc b/atom/browser/atom_browser_main_parts_posix.cc
+index 2a0dddc47..421260c63 100644
+--- a/atom/browser/atom_browser_main_parts_posix.cc
++++ b/atom/browser/atom_browser_main_parts_posix.cc
+@@ -183,6 +183,9 @@ void AtomBrowserMainParts::HandleShutdownSignals() {
+     g_pipe_pid = getpid();
+     g_shutdown_pipe_read_fd = pipefd[0];
+     g_shutdown_pipe_write_fd = pipefd[1];
++#if defined (__FreeBSD__)
++    const size_t kShutdownDetectorThreadStackSize = 0;
++#else
+ #if !defined(ADDRESS_SANITIZER) && !defined(KEEP_SHADOW_STACKS)
+     const size_t kShutdownDetectorThreadStackSize = PTHREAD_STACK_MIN * 2;
+ #else
+@@ -190,6 +193,7 @@ void AtomBrowserMainParts::HandleShutdownSignals() {
+     // shadow stacks) bloat the stack frames, so we need to increase the stack
+     // size to avoid hitting the guard page.
+     const size_t kShutdownDetectorThreadStackSize = PTHREAD_STACK_MIN * 4;
++#endif
+ #endif
+     // TODO(viettrungluu,willchan): crbug.com/29675 - This currently leaks, so
+     // if you change this, you'll probably need to change the suppression.
+diff --git a/atom/browser/ui/views/submenu_button.cc b/atom/browser/ui/views/submenu_button.cc
+index bedbb9883..9028c2bb8 100644
+--- a/atom/browser/ui/views/submenu_button.cc
++++ b/atom/browser/ui/views/submenu_button.cc
+@@ -35,7 +35,7 @@ SubmenuButton::SubmenuButton(views::ButtonListener* listener,
+       text_width_(0),
+       text_height_(0),
+       underline_color_(SK_ColorBLACK) {
+-#if defined(OS_LINUX)
++#if defined(OS_LINUX) || defined(OS_FREEBSD)
+   // Dont' use native style border.
+   SetBorder(CreateDefaultBorder().Pass());
+ #endif
+diff --git a/atom/common/api/atom_api_crash_reporter.cc b/atom/common/api/atom_api_crash_reporter.cc
+index e1932ad7f..6b179eff8 100644
+--- a/atom/common/api/atom_api_crash_reporter.cc
++++ b/atom/common/api/atom_api_crash_reporter.cc
+@@ -52,11 +52,13 @@ namespace {
+ void Initialize(v8::Local<v8::Object> exports, v8::Local<v8::Value> unused,
+                 v8::Local<v8::Context> context, void* priv) {
+   mate::Dictionary dict(context->GetIsolate(), exports);
++#if !defined(OS_FREEBSD)
+   auto report = base::Unretained(CrashReporter::GetInstance());
+   dict.SetMethod("start",
+                  base::Bind(&CrashReporter::Start, report));
+   dict.SetMethod("_getUploadedReports",
+                  base::Bind(&CrashReporter::GetUploadedReports, report));
++#endif
+ }
+ 
+ }  // namespace
+diff --git a/atom/common/atom_command_line.cc b/atom/common/atom_command_line.cc
+index 2ac62385a..5b434d256 100644
+--- a/atom/common/atom_command_line.cc
++++ b/atom/common/atom_command_line.cc
+@@ -21,7 +21,7 @@ void AtomCommandLine::Init(int argc, const char* const* argv) {
+   }
+ }
+ 
+-#if defined(OS_LINUX)
++#if defined(OS_LINUX) || defined(OS_FREEBSD)
+ // static
+ void AtomCommandLine::InitializeFromCommandLine() {
+   argv_ = base::CommandLine::ForCurrentProcess()->argv();
+diff --git a/atom/common/atom_command_line.h b/atom/common/atom_command_line.h
+index 7c8840f70..4308ac0e4 100644
+--- a/atom/common/atom_command_line.h
++++ b/atom/common/atom_command_line.h
+@@ -18,7 +18,7 @@ class AtomCommandLine {
+   static void Init(int argc, const char* const* argv);
+   static std::vector<std::string> argv() { return argv_; }
+ 
+-#if defined(OS_LINUX)
++#if defined(OS_LINUX) || defined(OS_FREEBSD)
+   // On Linux the command line has to be read from base::CommandLine since
+   // it is using zygote.
+   static void InitializeFromCommandLine();
+diff --git a/atom/common/node_bindings.cc b/atom/common/node_bindings.cc
+index dbd0bd8d9..573563412 100644
+--- a/atom/common/node_bindings.cc
++++ b/atom/common/node_bindings.cc
+@@ -133,7 +133,7 @@ void NodeBindings::Initialize() {
+   node::g_standalone_mode = is_browser_;
+   node::g_upstream_node_mode = false;
+ 
+-#if defined(OS_LINUX)
++#if defined(OS_LINUX) || defined(OS_FREEBSD)
+   // Get real command line in renderer process forked by zygote.
+   if (!is_browser_)
+     AtomCommandLine::InitializeFromCommandLine();
+diff --git a/atom/common/node_bindings_linux.cc b/atom/common/node_bindings_linux.cc
+index 34b9ea952..a2c7469e9 100644
+--- a/atom/common/node_bindings_linux.cc
++++ b/atom/common/node_bindings_linux.cc
+@@ -3,19 +3,34 @@
+ // found in the LICENSE file.
+ 
+ #include "atom/common/node_bindings_linux.h"
+-
++#if !defined(OS_FREEBSD)
+ #include <sys/epoll.h>
++#else
++#include <errno.h>
++#include <sys/select.h>
++#include <sys/sysctl.h>
++#include <sys/time.h>
++#include <sys/types.h>
++
++#endif
+ 
+ namespace atom {
+ 
+ NodeBindingsLinux::NodeBindingsLinux(bool is_browser)
++#if !defined(OS_FREEBSD)
+     : NodeBindings(is_browser),
+-      epoll_(epoll_create(1)) {
++     epoll_(epoll_create(1)) {
++#else
++	: NodeBindings(is_browser) {
++#endif
++#if !defined(OS_FREEBSD)
+   int backend_fd = uv_backend_fd(uv_loop_);
++
+   struct epoll_event ev = { 0 };
+   ev.events = EPOLLIN;
+   ev.data.fd = backend_fd;
+   epoll_ctl(epoll_, EPOLL_CTL_ADD, backend_fd, &ev);
++#endif
+ }
+ 
+ NodeBindingsLinux::~NodeBindingsLinux() {
+@@ -39,14 +54,37 @@ void NodeBindingsLinux::OnWatcherQueueChanged(uv_loop_t* loop) {
+ }
+ 
+ void NodeBindingsLinux::PollEvents() {
++#if !defined(OS_FREEBSD)
+   int timeout = uv_backend_timeout(uv_loop_);
+ 
+   // Wait for new libuv events.
+   int r;
++
+   do {
+     struct epoll_event ev;
+     r = epoll_wait(epoll_, &ev, 1, timeout);
++
++  } while (r == -1 && errno == EINTR);
++#else
++struct timeval tv;
++  int timeout = uv_backend_timeout(uv_loop_);
++  if (timeout != -1) {
++    tv.tv_sec = timeout / 1000;
++    tv.tv_usec = (timeout % 1000) * 1000;
++  }
++
++  fd_set readset;
++  int fd = uv_backend_fd(uv_loop_);
++  FD_ZERO(&readset);
++  FD_SET(fd, &readset);
++
++  // Wait for new libuv events.
++  int r;
++  do {
++    r = select(fd + 1, &readset, nullptr, nullptr,
++               timeout == -1 ? nullptr : &tv);
+   } while (r == -1 && errno == EINTR);
++#endif
+ }
+ 
+ // static
+diff --git a/chromium_src/chrome/browser/process_singleton_posix.cc b/chromium_src/chrome/browser/process_singleton_posix.cc
+index b03ce431e..91ddb5f41 100644
+--- a/chromium_src/chrome/browser/process_singleton_posix.cc
++++ b/chromium_src/chrome/browser/process_singleton_posix.cc
+@@ -82,7 +82,7 @@
+ #include "net/base/net_util.h"
+ #include "ui/base/l10n/l10n_util.h"
+ 
+-#if defined(TOOLKIT_VIEWS) && defined(OS_LINUX) && !defined(OS_CHROMEOS)
++#if defined(TOOLKIT_VIEWS) && (defined(OS_LINUX) || defined(OS_FREEBSD)) && !defined(OS_CHROMEOS)
+ #include "ui/views/linux_ui/linux_ui.h"
+ #endif
+ 
+@@ -853,7 +853,7 @@ ProcessSingleton::NotifyResult ProcessSingleton::NotifyOtherProcessWithTimeout(
+     // The other process is shutting down, it's safe to start a new process.
+     return PROCESS_NONE;
+   } else if (strncmp(buf, kACKToken, arraysize(kACKToken) - 1) == 0) {
+-#if defined(TOOLKIT_VIEWS) && defined(OS_LINUX) && !defined(OS_CHROMEOS)
++#if defined(TOOLKIT_VIEWS) && (defined(OS_LINUX) || defined(OS_FREEBSD)) && !defined(OS_CHROMEOS)
+     // Likely NULL in unit tests.
+     views::LinuxUI* linux_ui = views::LinuxUI::instance();
+     if (linux_ui)
+diff --git a/chromium_src/chrome/renderer/pepper/pepper_flash_font_file_host.cc b/chromium_src/chrome/renderer/pepper/pepper_flash_font_file_host.cc
+index 305b6ec56..f33db342c 100644
+--- a/chromium_src/chrome/renderer/pepper/pepper_flash_font_file_host.cc
++++ b/chromium_src/chrome/renderer/pepper/pepper_flash_font_file_host.cc
+@@ -13,7 +13,7 @@
+ #include "ppapi/proxy/ppapi_messages.h"
+ #include "ppapi/proxy/serialized_structs.h"
+ 
+-#if defined(OS_LINUX) || defined(OS_OPENBSD)
++#if defined(OS_LINUX) || defined(OS_OPENBSD) || defined(OS_FREEBSD)
+ #include "content/public/common/child_process_sandbox_support_linux.h"
+ #endif
+ 
+@@ -24,7 +24,7 @@ PepperFlashFontFileHost::PepperFlashFontFileHost(
+     const ppapi::proxy::SerializedFontDescription& description,
+     PP_PrivateFontCharset charset)
+     : ResourceHost(host->GetPpapiHost(), instance, resource) {
+-#if defined(OS_LINUX) || defined(OS_OPENBSD)
++#if defined(OS_LINUX) || defined(OS_OPENBSD) || defined(OS_FREEBSD)
+   fd_.reset(content::MatchFontWithFallback(
+       description.face.c_str(),
+       description.weight >= PP_BROWSERFONT_TRUSTED_WEIGHT_BOLD,
+@@ -51,7 +51,7 @@ int32_t PepperFlashFontFileHost::OnGetFontTable(
+     uint32_t table) {
+   std::string contents;
+   int32_t result = PP_ERROR_FAILED;
+-#if defined(OS_LINUX) || defined(OS_OPENBSD)
++#if defined(OS_LINUX) || defined(OS_OPENBSD) || defined(OS_FREEBSD)
+   int fd = fd_.get();
+   if (fd != -1) {
+     size_t length = 0;
+diff --git a/chromium_src/chrome/renderer/pepper/pepper_flash_font_file_host.h b/chromium_src/chrome/renderer/pepper/pepper_flash_font_file_host.h
+index 02bb30f31..4d1070c29 100644
+--- a/chromium_src/chrome/renderer/pepper/pepper_flash_font_file_host.h
++++ b/chromium_src/chrome/renderer/pepper/pepper_flash_font_file_host.h
+@@ -10,7 +10,7 @@
+ #include "ppapi/c/private/pp_private_font_charset.h"
+ #include "ppapi/host/resource_host.h"
+ 
+-#if defined(OS_LINUX) || defined(OS_OPENBSD)
++#if defined(OS_LINUX) || defined(OS_OPENBSD) || defined(OS_FREEBSD)
+ #include "base/files/scoped_file.h"
+ #endif
+ 
+@@ -42,7 +42,7 @@ class PepperFlashFontFileHost : public ppapi::host::ResourceHost {
+   int32_t OnGetFontTable(ppapi::host::HostMessageContext* context,
+                          uint32_t table);
+ 
+-#if defined(OS_LINUX) || defined(OS_OPENBSD)
++#if defined(OS_LINUX) || defined(OS_OPENBSD) || defined(OS_FREEBSD)
+   base::ScopedFD fd_;
+ #endif
+ 
+diff --git a/chromium_src/chrome/renderer/printing/print_web_view_helper.h b/chromium_src/chrome/renderer/printing/print_web_view_helper.h
+index bfe9cb612..ef25c533e 100644
+--- a/chromium_src/chrome/renderer/printing/print_web_view_helper.h
++++ b/chromium_src/chrome/renderer/printing/print_web_view_helper.h
+@@ -175,7 +175,7 @@ class PrintWebViewHelper
+   void FinishFramePrinting();
+ 
+   // Prints the page listed in |params|.
+-#if defined(OS_LINUX) || defined(OS_ANDROID)
++#if defined(OS_LINUX) || defined(OS_ANDROID) || defined(OS_FREEBSD)
+   void PrintPageInternal(const PrintMsg_PrintPage_Params& params,
+                          blink::WebFrame* frame,
+                          PdfMetafileSkia* metafile);
+diff --git a/chromium_src/library_loaders/libspeechd.h b/chromium_src/library_loaders/libspeechd.h
+index 0d62f2c5d..116f09b42 100644
+--- a/chromium_src/library_loaders/libspeechd.h
++++ b/chromium_src/library_loaders/libspeechd.h
+@@ -4,7 +4,7 @@
+ #ifndef LIBRARY_LOADER_OUT_RELEASE_GEN_LIBRARY_LOADERS_LIBSPEECHD_H
+ #define LIBRARY_LOADER_OUT_RELEASE_GEN_LIBRARY_LOADERS_LIBSPEECHD_H
+ 
+-#include "third_party/speech-dispatcher/libspeechd.h"
++#include "speech-dispatcher/libspeechd.h"
+ #define LIBRARY_LOADER_OUT_RELEASE_GEN_LIBRARY_LOADERS_LIBSPEECHD_H_DLOPEN
+ 
+ 
+--- a/script/bootstrap.py	2017-12-12 12:47:38.413600000 +0400
++++ b/script/bootstrap.py	2017-12-12 12:50:41.005599000 +0400
+@@ -33,8 +33,8 @@
+   if sys.platform == 'cygwin':
+     update_win32_python()
+ 
+-  if PLATFORM != 'win32':
+-    update_clang()
++  #if PLATFORM != 'win32':
++  #  update_clang()
+ 
+   update_submodules()
+   setup_python_libs()
+@@ -43,8 +43,8 @@
+                       args.libcc_source_path, args.libcc_shared_library_path,
+                       args.libcc_static_library_path)
+ 
+-  if args.target_arch in ['arm', 'ia32'] and PLATFORM == 'linux':
+-    download_sysroot(args.target_arch)
++  #if args.target_arch in ['arm', 'ia32'] and PLATFORM == 'linux':
++  #  download_sysroot(args.target_arch)
+ 
+   create_chrome_version_h()
+   touch_config_gypi()
+diff --git a/script/build.py b/script/build.py
+index c428b95f3..edab855d4 100755
+--- a/script/build.py
++++ b/script/build.py
+@@ -18,7 +18,9 @@ def main():
+   ninja = os.path.join('vendor', 'depot_tools', 'ninja')
+   if sys.platform == 'win32':
+     ninja += '.exe'
+-
++  elif sys.platform == 'freebsd11':
++    ninja = 'ninja'
++	
+   args = parse_args()
+   for config in args.configuration:
+     build_path = os.path.join('out', config[0])
+diff --git a/script/create-dist.py b/script/create-dist.py
+index d79d963c1..f96851bc6 100755
+--- a/script/create-dist.py
++++ b/script/create-dist.py
+@@ -54,6 +54,14 @@ TARGET_BINARIES = {
+     'natives_blob.bin',
+     'snapshot_blob.bin',
+   ],
++  'freebsd': [
++    PROJECT_NAME,  # 'electron'
++    'content_shell.pak',
++    'icudtl.dat',
++    'libnode.so',
++    'natives_blob.bin',
++    'snapshot_blob.bin',
++  ],
+ }
+ TARGET_DIRECTORIES = {
+   'darwin': [
+@@ -67,6 +75,10 @@ TARGET_DIRECTORIES = {
+     'resources',
+     'locales',
+   ],
++  'freebsd': [
++    'resources',
++    'locales',
++  ],
+ }
+ 
+ SYSTEM_LIBRARIES = [
+@@ -82,7 +94,7 @@ def main():
+   target_arch = get_target_arch()
+ 
+   force_build()
+-  create_symbols()
++  #create_symbols()
+   copy_binaries()
+   copy_chrome_binary('chromedriver')
+   copy_chrome_binary('mksnapshot')
+@@ -97,7 +109,7 @@ def main():
+   create_dist_zip()
+   create_chrome_binary_zip('chromedriver', get_chromedriver_version())
+   create_chrome_binary_zip('mksnapshot', ATOM_SHELL_VERSION)
+-  create_symbols_zip()
++  #create_symbols_zip()
+ 
+ 
+ def force_build():
+diff --git a/toolchain.gypi b/toolchain.gypi
+index 23592d047..fc17d8574 100644
+--- a/toolchain.gypi
++++ b/toolchain.gypi
+@@ -1,7 +1,7 @@
+ {
+   'variables': {
+     # Clang stuff.
+-    'make_clang_dir%': 'vendor/llvm-build/Release+Asserts',
++    'make_clang_dir%': '/usr',
+     # Set this to true when building with Clang.
+     'clang%': 1,
+ 
+@@ -77,8 +77,11 @@
+         ['CXX.host', '$(CXX)'],
+       ],
+       'target_defaults': {
++         'cflags_c' : [
++          '-isystem/usr/local/include/ -fPIC',
++        ],
+         'cflags_cc': [
+-          '-std=c++11',
++          ' -I/usr/local/include  -fno-rtti  -pthread -std=c++11 -fPIC',
+         ],
+         'xcode_settings': {
+           'CC': '<(make_clang_dir)/bin/clang',
+diff --git a/script/lib/config.py b/script/lib/config.py
+index 5ea60fc..217372a 100644
+--- a/script/lib/config.py
++++ b/script/lib/config.py
+@@ -15,6 +15,7 @@ PLATFORM = {
+   'cygwin': 'win32',
+   'darwin': 'darwin',
+   'linux2': 'linux',
++  'freebsd11': 'freebsd',
+   'win32': 'win32',
+ }[sys.platform]
+ 
+
