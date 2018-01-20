@@ -1,0 +1,55 @@
+--- a/third_party/iccjpeg/BUILD.gn	2017-11-25 15:29:43.897890000 +0400
++++ b/third_party/iccjpeg/BUILD.gn	2017-11-25 15:30:07.905164000 +0400
+@@ -3,7 +3,7 @@
+ # found in the LICENSE file.
+ 
+ config("iccjpeg_config") {
+-  include_dirs = [ "." ]
++  include_dirs = [ ".", "/usr/local/include", ]
+ }
+ 
+ static_library("iccjpeg") {
+--- a/base/BUILD.gn	2017-11-25 15:33:28.844747000 +0400
++++ b/base/BUILD.gn	2017-11-25 16:01:49.441283000 +0400
+@@ -1507,7 +1507,8 @@
+     # TODO(brettw) this will need to be parameterized at some point.
+     linux_configs = []
+     if (use_glib) {
+-      linux_configs += [ "//build/config/linux:glib" ]
++      #linux_configs += [ "//build/config/linux:glib" ]
++      include_dirs = [ "/usr/local/include/glib-2.0", "/usr/local/lib/glib-2.0/include", "../../third_party/ced/src", "../../third_party/icu/source/common", "../../third_party/icu/source/i18n", ]
+     }
+ 
+     defines += [ "USE_SYMBOLIZE" ]
+--- a/net/BUILD.gn	2017-11-25 17:30:07.837877000 +0400
++++ b/net/BUILD.gn	2017-11-25 17:18:02.786524000 +0400
+@@ -53,7 +53,7 @@
+     "DLOPEN_KERBEROS",
+     "NET_IMPLEMENTATION",
+   ]
+- 
++  include_dirs = [ "../third_party/icu/source/common", "../third_party/icu/source/i18n", ]
+   if (use_kerberos) {
+     defines += [ "USE_KERBEROS" ]
+     if (is_android) {
+diff -ru a/ui/base/BUILD.gn b/ui/base/BUILD.gn
+--- a/ui/base/BUILD.gn	2017-11-22 15:29:27.281974000 +0400
++++ b/ui/base/BUILD.gn	2017-11-22 15:42:48.106063000 +0400
+@@ -57,6 +57,7 @@
+ }
+ 
+ component("base") {
++  include_dirs = [ "../../third_party/icu/source/common", "../../third_party/icu/source/i18n" ]
+   output_name = "ui_base"
+ 
+   sources = [
+--- a/ui/gfx/BUILD.gn	2017-11-29 15:16:04.473199000 +0400
++++ b/ui/gfx/BUILD.gn	2017-11-29 15:27:26.314798000 +0400
+@@ -22,6 +22,7 @@
+ }
+ 
+ component("gfx") {
++  include_dirs = [ "../../third_party/icu/source/common", "../../third_party/icu/source/i18n" ]
+   sources = [
+     "android/gfx_jni_registrar.cc",
+     "android/gfx_jni_registrar.h",
