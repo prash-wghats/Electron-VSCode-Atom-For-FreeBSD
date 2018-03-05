@@ -5,8 +5,8 @@ index d089dba..2c443f8 100644
 @@ -2,6 +2,7 @@
    'variables': {
      # The libraries brightray will be compiled to.
-     'linux_system_libraries': 'gtk+-3.0 dbus-1 x11 x11-xcb xcb xi xcursor xdamage xrandr xcomposite xext xfixes xrender xtst xscrnsaver gconf-2.0 gmodule-2.0 nss',
-+    'freebsd_system_libraries': 'gtk+-3.0 dbus-1 x11 x11-xcb xcb xi xcursor xdamage xrandr xcomposite xext xfixes xrender xtst xscrnsaver gconf-2.0 gmodule-2.0 nss',
+     'linux_system_libraries': 'gtk+-2.0 dbus-1 x11 x11-xcb xcb xi xcursor xdamage xrandr xcomposite xext xfixes xrender xtst xscrnsaver gconf-2.0 gmodule-2.0',
++    'freebsd_system_libraries': 'gtk+-2.0 dbus-1 x11 x11-xcb xcb xi xcursor xdamage xrandr xcomposite xext xfixes xrender xtst xscrnsaver gconf-2.0 gmodule-2.0 nss',
      'conditions': [
        ['target_arch=="mips64el"', {
          'linux_system_libraries': '<(linux_system_libraries) libpulse',
@@ -44,7 +44,7 @@ index d089dba..2c443f8 100644
 +              '<!@(<(pkg-config) --libs-only-l <(freebsd_system_libraries))',
 +              '-lexecinfo -lkvm -lgconf-2 -lgio-2.0 ',
 +              '-lxml2 -lfontconfig -lfreetype -lexpat -lharfbuzz -lpng16 -lcups ',
-+              '-lspeechd -lm -lz -lrt  -ljpeg ',
++              '-lspeechd -lm -lz -lrt  -ljpeg -lwebp -lwebpdemux',
 +              '-lasound -lsnappy -lxslt -lcups -lspeechd -ldbus-1 -lFLAC '
 +            ],
 +          },

@@ -1,9 +1,9 @@
 ### Electron for Freebsd.
 
-This was built with FreeBSD 11.0-RELEASE-p1. 
+Built with FreeBSD 11.0-RELEASE-p1. 
 ```
-Chromium 61.0.3163.100.  
-Electron v1.8.2.beta.2  
+Electron v1.8.2  
+Chromium v59.0.3071.115 
 ```
 
 **Building**

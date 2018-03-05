@@ -828,17 +828,23 @@ index 1c5f8a7..a733b2e 100644
          ],
          'xcode_settings': {
            'CC': '<(make_clang_dir)/bin/clang',
---- a/brightray/brightray.gypi	2018-01-17 17:52:16.139123000 +0400
-+++ b/brightray/brightray.gypi	2018-01-17 17:52:33.313204000 +0400
-@@ -121,7 +121,7 @@
-               'USE_NSS',  # deprecated after Chrome 45.
+--- a/brightray/brightray.gypi	2018-03-04 15:17:29.848011000 +0400
++++ b/brightray/brightray.gypi	2018-03-04 16:38:25.455412000 +0400
+@@ -119,12 +119,13 @@
+               'USE_OPENSSL',
              ],
            }],
--          ['OS in ["linux", "mac"]', {
-+          ['OS in ["linux", "mac", "freebsd"]', {
+-          ['OS=="linux"', {
++          ['OS=="linux" or OS=="freebsd"', {
              'defines': [
-               'WEBRTC_POSIX',
-               'UCHAR_TYPE=uint16_t',
+               'USE_X11',
+               '_LARGEFILE_SOURCE',
+               '_LARGEFILE64_SOURCE',
+               '_FILE_OFFSET_BITS=64',
++              'USE_NSS_CERTS',
+             ],
+             'cflags_cc': [
+               '-D__STRICT_ANSI__',
 --- a/brightray/browser/browser_main_parts.cc	2018-01-17 17:55:26.895347000 +0400
 +++ b/brightray/browser/browser_main_parts.cc	2018-01-17 17:54:48.566902000 +0400
 @@ -167,7 +167,7 @@
@@ -850,4 +856,15 @@ index 1c5f8a7..a733b2e 100644
  void OverrideAppLogsPath() {
    base::FilePath path;
    if (PathService::Get(brightray::DIR_APP_DATA, &path)) {
-
+--- a/package.json	2018-03-04 17:26:36.829462000 +0400
++++ b/package.json	2018-03-04 17:27:01.296858000 +0400
+@@ -12,7 +12,7 @@
+     "dugite": "^1.45.0",
+     "electabul": "~0.0.4",
+     "electron-docs-linter": "^2.3.4",
+-    "electron-typescript-definitions": "^1.2.11",
++    "electron-typescript-definitions": "1.2.11",
+     "github": "^9.2.0",
+     "husky": "^0.14.3",
+     "minimist": "^1.2.0",
+     
