@@ -154,7 +154,7 @@ index b05b4b0..10c066b 100755
 +	  args += ' use_sysroot=false  use_system_libjpeg=true  use_system_sqlite=false'
 +	  args += ' ffmpeg_branding="Chrome" proprietary_codecs=true enable_hevc_demuxing=true'
 +	  args += ' use_gconf=true use_kerberos=true use_alsa=true use_pulseaudio=false' 
-+	  args += ' use_sndio=false is_debug=false symbol_level=0 remove_webcore_debug_symbols=true' 
++	  args += ' use_sndio=false is_debug=false symbol_level=0 remove_webcore_debug_symbols=true extra_cxxflags="-I/usr/local/include"' 
 +	  
      output_dir = get_output_dir(SOURCE_ROOT, target_arch, component)
      subprocess.call([gn, 'gen', os.path.relpath(output_dir, SRC_DIR), '--args=' + args],
