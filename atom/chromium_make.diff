@@ -31,6 +31,15 @@
  		libcups.so:print/cups \
  		libfreetype.so:print/freetype2 \
  		libharfbuzz.so:print/harfbuzz \
+@@ -58,7 +56,7 @@
+ 		droid-fonts-ttf>0:x11-fonts/droid-fonts-ttf
+ 
+ ONLY_FOR_ARCHS=	i386 amd64
+-USES=		compiler bison cpe desktop-file-utils execinfo jpeg \
++USES=		compiler bison cpe desktop-file-utils jpeg \
+ 		ninja perl5 pkgconfig python:2,build shebangfix tar:xz
+ 
+ CPE_VENDOR=	google
 @@ -185,8 +183,8 @@
  
  .include <bsd.port.pre.mk>
