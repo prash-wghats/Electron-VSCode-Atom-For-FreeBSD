@@ -61,7 +61,7 @@ cd $BUILDROOT
 echo "Building APM NodeJS ..."
 git clone https://github.com/nodejs/node.git
 cd node
-git checkout v8.8.1
+git checkout v6.9.5
 ./configure
 make -j4
 cd ..
@@ -126,6 +126,7 @@ cd $BUILDROOT/atom/node_modules/fs-admin
 cd $BUILDROOT/atom/
 set +e
 cp menus/linux.cson menus/freebsd.cson
+cp keymaps/linux.cson keymaps/freebsd.cson
 rm -rf node_modules/@atom/nsfw/node_modules
 rm -rf node_modules/@atom/nsfw/build
 cp -R node_modules/nsfw/build node_modules/@atom/nsfw/.
