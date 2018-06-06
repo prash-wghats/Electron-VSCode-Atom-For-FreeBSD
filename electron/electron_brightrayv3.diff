@@ -5,8 +5,8 @@ index d089dba..2c443f8 100644
 @@ -2,6 +2,7 @@
    'variables': {
      # The libraries brightray will be compiled to.
-     'linux_system_libraries': 'gtk+-2.0 dbus-1 x11 x11-xcb xcb xi xcursor xdamage xrandr xcomposite xext xfixes xrender xtst xscrnsaver gconf-2.0 gmodule-2.0',
-+    'freebsd_system_libraries': 'gtk+-2.0 dbus-1 x11 x11-xcb xcb xi xcursor xdamage xrandr xcomposite xext xfixes xrender xtst xscrnsaver gconf-2.0 gmodule-2.0 nss',
+     'linux_system_libraries': 'gtk+-3.0 dbus-1 x11 x11-xcb xcb xi xcursor xdamage xrandr xcomposite xext xfixes xrender xtst xscrnsaver gconf-2.0 gmodule-2.0 nss',
++    'freebsd_system_libraries': 'gtk+-3.0 dbus-1 x11 x11-xcb xcb xi xcursor xdamage xrandr xcomposite xext xfixes xrender xtst xscrnsaver gconf-2.0 gmodule-2.0 nss',
      'conditions': [
        ['target_arch=="mips64el"', {
          'linux_system_libraries': '<(linux_system_libraries) libpulse',
@@ -44,7 +44,7 @@ index d089dba..2c443f8 100644
 +              '<!@(<(pkg-config) --libs-only-l <(freebsd_system_libraries))',
 +              '-lexecinfo -lkvm -lgconf-2 -lgio-2.0 ',
 +              '-lxml2 -lfontconfig -lfreetype -lexpat -lharfbuzz -lpng16 -lcups ',
-+              '-lspeechd -lm -lz -lrt  -ljpeg -lwebp -lwebpdemux',
++              '-lspeechd -lm -lz -lrt  -ljpeg ',
 +              '-lasound -lsnappy -lxslt -lcups -lspeechd -ldbus-1 -lFLAC '
 +            ],
 +          },
@@ -155,4 +155,15 @@ index 157660a..f665a95 100644
    gfx::ImageSkia* GetDefaultWindowIcon() const override;
  #endif
    views::NonClientFrameView* CreateDefaultNonClientFrameView(
+--- a/common/platform_util.h	2018-06-02 10:42:57.312194000 +0400
++++ b/common/platform_util.h	2018-06-02 10:43:06.302235000 +0400
+@@ -11,7 +11,7 @@
+ 
+ namespace platform_util {
+ 
+-#if defined(OS_LINUX)
++#if defined(OS_LINUX) || defined(OS_FREEBSD)
+ // Returns a success flag.
+ // Unlike libgtkui, does *not* use "chromium-browser.desktop" as a fallback.
+ bool GetDesktopName(std::string* setme);
 

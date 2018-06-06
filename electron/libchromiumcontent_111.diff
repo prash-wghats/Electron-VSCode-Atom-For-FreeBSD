@@ -8,7 +8,7 @@ index cfd5c26..9a5ebe2 100644
  
 -    if (is_linux) {
 +    if (is_linux||is_bsd) {
-       deps += [ "//chrome/browser/ui/libgtkui:libgtk2ui" ]
+       deps += [ "//chrome/browser/ui/libgtkui:libgtk3ui" ]
      }
  
 @@ -53,7 +53,7 @@ group("targets") {
@@ -38,6 +38,110 @@ index cfd5c26..9a5ebe2 100644
      configs += [ "//build/config/gcc:rpath_for_built_shared_libraries" ]
    }
  }
+diff --git a/chromiumcontent/args/static_library.gn b/chromiumcontent/args/static_library.gn
+index 9b4e826..1a90d8e 100644
+--- a/chromiumcontent/args/static_library.gn
++++ b/chromiumcontent/args/static_library.gn
+@@ -56,3 +56,31 @@ if (target_cpu == "mips64el") {
+     use_sysroot = false
+   }
+ }
++
++if (target_os == "bsd") {
++  clang_use_chrome_plugins=false                                          
++  enable_nacl=false                                                       
++  enable_one_click_signin=true                                            
++  enable_remoting=false                                                   
++  enable_webrtc=false                                                     
++  fieldtrial_testing_like_official_build=true                             
++  is_clang=true                                                           
++  toolkit_views=true                                                      
++  use_gtk3=true                                                           
++  use_lld=true                                                            
++  use_sysroot=false                                                       
++  use_system_libjpeg=true                                                 
++  use_system_sqlite=false                                                 
++  ffmpeg_branding="Chrome"                                                
++  proprietary_codecs=true                                                 
++  enable_hevc_demuxing=true                                               
++  use_gconf=true                                                          
++  use_kerberos=true                                                       
++  use_alsa=true                                                           
++  use_pulseaudio=false                                                    
++  use_sndio=false                                                         
++  is_debug=false                                                          
++  symbol_level=0                                                          
++  remove_webcore_debug_symbols=true                                       
++  extra_cxxflags="-Wno-deprecated-register  -I/usr/local/include"
++}
+--- a/chromiumcontent/args/shared_library.gn	2018-01-17 11:07:10.779008000 +0400
++++ b/chromiumcontent/args/shared_library.gn	2018-01-17 11:43:34.704604000 +0400
+@@ -50,3 +50,31 @@
+     use_sysroot = false
+   }
+ }
++
++if (target_os == "bsd") {
++  clang_use_chrome_plugins=false                                          
++  enable_nacl=false                                                       
++  enable_one_click_signin=true                                            
++  enable_remoting=false                                                   
++  enable_webrtc=false                                                     
++  fieldtrial_testing_like_official_build=true                             
++  is_clang=true                                                           
++  toolkit_views=true                                                      
++  use_gtk3=true                                                           
++  use_lld=true                                                            
++  use_sysroot=false                                                       
++  use_system_libjpeg=true                                                 
++  use_system_sqlite=false                                                 
++  ffmpeg_branding="Chrome"                                                
++  proprietary_codecs=true                                                 
++  enable_hevc_demuxing=true                                               
++  use_gconf=true                                                          
++  use_kerberos=true                                                       
++  use_alsa=true                                                           
++  use_pulseaudio=false                                                    
++  use_sndio=false                                                         
++  is_debug=false                                                          
++  symbol_level=0                                                          
++  remove_webcore_debug_symbols=true                                       
++  extra_cxxflags="-Wno-deprecated-register  -I/usr/local/include"
++}
+--- a/chromiumcontent/args/ffmpeg.gn	2018-01-17 11:07:10.778900000 +0400
++++ b/chromiumcontent/args/ffmpeg.gn	2018-01-17 11:43:30.425067000 +0400
+@@ -43,3 +43,31 @@
+     use_sysroot = false
+   }
+ }
++
++if (target_os == "bsd") {
++  clang_use_chrome_plugins=false                                          
++  enable_nacl=false                                                       
++  enable_one_click_signin=true                                            
++  enable_remoting=false                                                   
++  enable_webrtc=false                                                     
++  fieldtrial_testing_like_official_build=true                             
++  is_clang=true                                                           
++  toolkit_views=true                                                      
++  use_gtk3=true                                                           
++  use_lld=true                                                            
++  use_sysroot=false                                                       
++  use_system_libjpeg=true                                                 
++  use_system_sqlite=false                                                 
++  ffmpeg_branding="Chrome"                                                
++  proprietary_codecs=true                                                 
++  enable_hevc_demuxing=true                                               
++  use_gconf=true                                                          
++  use_kerberos=true                                                       
++  use_alsa=true                                                           
++  use_pulseaudio=false                                                    
++  use_sndio=false                                                         
++  is_debug=false                                                          
++  symbol_level=0                                                          
++  remove_webcore_debug_symbols=true                                       
++  extra_cxxflags="-Wno-deprecated-register  -I/usr/local/include"
++}
 diff --git a/script/build b/script/build
 index 2d568dd..3bc7ba7 100755
 --- a/script/build
@@ -47,7 +151,7 @@ index 2d568dd..3bc7ba7 100755
  elif IS_MIPS64EL_HOST:
    NINJA = os.path.join(VENDOR_DIR, 'depot_tools', 'ninja-build')
 -
-+elif sys.platform == 'freebsd11':
++elif sys.platform.startswith('freebsd'):
 +  NINJA = 'ninja'
  
  def main():
@@ -71,96 +175,101 @@ index 58161ec..0f12ab2 100755
  elif IS_MIPS64EL_HOST:
    NINJA = os.path.join(VENDOR_DIR, 'depot_tools', 'ninja-build')
 -
-+elif sys.platform == 'freebsd11':
++elif sys.platform.startswith('freebsd'):
 +  NINJA = 'ninja'
 +  
  COPY_PY = os.path.join(TOOLS_DIR, 'copy.py')
  LICENSES_PY = os.path.join(TOOLS_DIR, 'licenses.py')
  
-@@ -47,6 +49,7 @@
+@@ -47,6 +49,9 @@
    'cygwin': 'win32',
    'darwin': 'darwin',
    'linux2': 'linux',
++  'freebsd10': 'linux',
 +  'freebsd11': 'linux',
++  'freebsd12': 'linux',
    'win32': 'win32',
  }[sys.platform]
  
-@@ -742,6 +745,8 @@
-     print 'Zipping static_library builds...'
-     p = os.path.join(SOURCE_ROOT, 'libchromiumcontent-static.zip')
-     make_zip(MAIN_DIR, ['static_library'], [], p)
-+    p = os.path.join(SOURCE_ROOT, 'libchromiumcontent.zip')
-+    make_zip(MAIN_DIR, ['src', 'ffmpeg'], ['LICENSES.chromium.html'], p)
- 
- 
- def make_zip(src, dirs, files, target):
+@@ -749,6 +752,8 @@
+     print 'Packing static_library builds...'
+     p = os.path.join(SOURCE_ROOT, 'libchromiumcontent-static.tar.bz2')
+     make_archive(MAIN_DIR, ['static_library'], [], p)
++    p = os.path.join(SOURCE_ROOT, 'libchromiumcontent.tar.bz2')
++    make_archive(MAIN_DIR, ['src', 'ffmpeg'], ['LICENSES.chromium.html'], p)
+   if component == 'native_mksnapshot':
+     print 'Packing native mksnapshot...'
+     p = os.path.join(SOURCE_ROOT, 'native-mksnapshot.tar.bz2')
 diff --git a/script/update b/script/update
 index b05b4b0..10c066b 100755
 --- a/script/update
 +++ b/script/update
-@@ -25,6 +25,8 @@
- NINJA = os.path.join(DEPOT_TOOLS, 'ninja')
- if sys.platform == 'win32':
-   NINJA = '{0}.exe'.format(NINJA)
-+elif sys.platform == 'freebsd11':
-+  NINJA = 'ninja'
+@@ -85,8 +85,8 @@
  
- DEBIAN_MIRROR = 'http://ftp.jp.debian.org/debian/pool/main/'
- BINTOOLS_NAME = 'c/cross-binutils/binutils-aarch64-linux-gnu_2.25-5_amd64.deb'
-@@ -48,8 +50,8 @@
-   if sys.platform == 'win32' and not args.skip_depot_tools_update:
-     update_depot_tools()
- 
--  if args.clean and os.path.isdir(SRC_DIR):
--    git_clean_recursive(SRC_DIR)
-+  #if args.clean and os.path.isdir(SRC_DIR):
-+  #  git_clean_recursive(SRC_DIR)
- 
-   # Warning about using a network share as git cache from Windows 7+: The
-   # gclient script may experience errors unless you disable SMBv2 cache by
-@@ -79,8 +81,8 @@
- 
-   return (apply_patches(args.skip_patches, target_arch) or
+   return ((apply_patches(target_arch) if args.apply_patches else 0) or
            copy_chromiumcontent_files() or
 -          update_clang() or
 -          setup_mips64el_toolchain(target_arch) or
 +          #update_clang() or
 +          #setup_mips64el_toolchain(target_arch) or
-           run_gn(target_arch, args.defines))
+           run_gn(target_arch))
  
  
-@@ -280,7 +282,9 @@
-     gn = os.path.join(SRC_DIR, 'buildtools', 'linux64', 'gn')
-   elif sys.platform == 'darwin':
-     gn = os.path.join(SRC_DIR, 'buildtools', 'mac', 'gn')
+@@ -291,6 +291,9 @@
+     "cygwin": "win",
+     "darwin": "mac",
+     "linux2": "linux",
++    "freebsd10": "bsd",
++    "freebsd11": "bsd",
++    "freebsd12": "bsd",
+     "win32": "win",
+   }.get(sys.platform)
+
+--- a/chromiumcontent/args/native_mksnapshot.gn	2018-06-02 17:53:07.857192000 +0400
++++ b/chromiumcontent/args/native_mksnapshot.gn	2018-06-02 17:54:07.169391000 +0400
+@@ -12,3 +12,31 @@
+ if (target_cpu == "arm64") {
+   v8_snapshot_toolchain="//build/toolchain/linux:clang_arm64"
+ }
++
++if (target_os == "bsd") {
++  clang_use_chrome_plugins=false                                          
++  enable_nacl=false                                                       
++  enable_one_click_signin=true                                            
++  enable_remoting=false                                                   
++  enable_webrtc=false                                                     
++  fieldtrial_testing_like_official_build=true                             
++  is_clang=true                                                           
++  toolkit_views=true                                                      
++  use_gtk3=true                                                           
++  use_lld=true                                                            
++  use_sysroot=false                                                       
++  use_system_libjpeg=true                                                 
++  use_system_sqlite=false                                                 
++  ffmpeg_branding="Chrome"                                                
++  proprietary_codecs=true                                                 
++  enable_hevc_demuxing=true                                               
++  use_gconf=true                                                          
++  use_kerberos=true                                                       
++  use_alsa=true                                                           
++  use_pulseaudio=false                                                    
++  use_sndio=false                                                         
++  is_debug=false                                                          
++  symbol_level=0                                                          
++  remove_webcore_debug_symbols=true                                       
++  extra_cxxflags="-Wno-deprecated-register  -I/usr/local/include"
++}
+--- a/script/lib/gn.py	2018-06-02 17:30:18.079173000 +0400
++++ b/script/lib/gn.py	2018-06-02 17:30:31.910252000 +0400
+@@ -13,7 +13,9 @@
+     relative_path = ['buildtools', 'linux64', 'gn']
+   elif platform == 'darwin':
+     relative_path = ['buildtools', 'mac', 'gn']
 -
-+  elif sys.platform == 'freebsd11':
-+    gn = os.path.join(SRC_DIR, 'out', 'Release', 'gn')
++  elif sys.platform.startswith('freebsd'):
++    relative_path = ['out', 'Release', 'gn']
 +    
-   env = os.environ.copy()
-   if sys.platform in ['win32', 'cygwin']:
-     env['DEPOT_TOOLS_WIN_TOOLCHAIN'] = '0'
-@@ -317,7 +317,17 @@
-         args += ' use_pulseaudio=true'
-         if IS_MIPS64EL_HOST:
-           args += ' use_sysroot=false'
--
-+    if sys.platform == 'freebsd11':
-+	  args += ' use_gtk3=false clang_use_chrome_plugins=false  enable_media_router=true  enable_nacl=false'
-+	  args += ' enable_one_click_signin=true  enable_remoting=false  enable_webrtc=false'
-+	  args += ' fieldtrial_testing_like_official_build=true  is_clang=true  toolkit_views=true'
-+	  args += ' treat_warnings_as_errors=false  use_allocator="none"  use_aura=true'
-+	  args += ' use_cups=true  use_experimental_allocator_shim=false  use_lld=true'
-+	  args += ' use_sysroot=false  use_system_libjpeg=true  use_system_sqlite=false'
-+	  args += ' ffmpeg_branding="Chrome" proprietary_codecs=true enable_hevc_demuxing=true'
-+	  args += ' use_gconf=true use_kerberos=true use_alsa=true use_pulseaudio=false' 
-+	  args += ' use_sndio=false is_debug=false symbol_level=0 remove_webcore_debug_symbols=true extra_cxxflags="-I/usr/local/include"' 
-+	  
-     output_dir = get_output_dir(SOURCE_ROOT, target_arch, component)
-     subprocess.call([gn, 'gen', os.path.relpath(output_dir, SRC_DIR), '--args=' + args],
-                     cwd=SRC_DIR, env=env)
-                     
-                     
+   assert relative_path is not None, "Platform '{}' is not supported".format(platform)
  
- 
- 
+   absolute_path = os.path.join(chromium_root_dir, *relative_path)
+

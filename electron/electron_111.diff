@@ -22,17 +22,53 @@ index 9c255db..6ebb03f 100644
    if (IsEnvSet(kRunAsNode)) {
 diff --git a/atom/app/atom_main_delegate.cc b/atom/app/atom_main_delegate.cc
 index 2d31b1c..b54f16a 100644
---- a/atom/app/atom_main_delegate.cc
-+++ b/atom/app/atom_main_delegate.cc
-@@ -85,7 +85,7 @@ bool AtomMainDelegate::BasicStartupComplete(int* exit_code) {
+--- a/atom/app/atom_main_delegate.cc	2018-06-02 09:46:25.152111000 +0400
++++ b/atom/app/atom_main_delegate.cc	2018-06-02 09:46:54.903205000 +0400
+@@ -95,7 +95,7 @@
+   logging::SetLogItems(true, false, true, false);
  
    // Enable convient stack printing.
-   bool enable_stack_dumping = env->HasVar("ELECTRON_ENABLE_STACK_DUMPING");
 -#if defined(DEBUG) && defined(OS_LINUX)
 +#if defined(DEBUG) && (defined(OS_LINUX) || defined(OS_FREEBSD))
-   enable_stack_dumping = true;
- #endif
-   if (enable_stack_dumping)
+   bool enable_stack_dumping = true;
+ #else
+   bool enable_stack_dumping = env->HasVar("ELECTRON_ENABLE_STACK_DUMPING");
+--- a/atom/common/api/atom_api_crash_reporter.cc	2018-06-02 09:53:54.544456000 +0400
++++ b/atom/common/api/atom_api_crash_reporter.cc	2018-06-02 09:56:27.645963000 +0400
+@@ -32,7 +32,9 @@
+ namespace {
+ 
+ void AddExtraParameter(const std::string& key, const std::string& value) {
++#if !defined(OS_FREEBSD)
+   CrashReporter::GetInstance()->AddExtraParameter(key, value);
++#endif
+ }
+ 
+ void RemoveExtraParameter(const std::string& key) {
+@@ -40,12 +42,15 @@
+ }
+ 
+ std::map<std::string, std::string> GetParameters() {
++#if !defined(OS_FREEBSD)
+   return CrashReporter::GetInstance()->GetParameters();
++#endif
+ }
+ 
+ void Initialize(v8::Local<v8::Object> exports, v8::Local<v8::Value> unused,
+                 v8::Local<v8::Context> context, void* priv) {
+   mate::Dictionary dict(context->GetIsolate(), exports);
++#if !defined(OS_FREEBSD)
+   auto reporter = base::Unretained(CrashReporter::GetInstance());
+   dict.SetMethod("start", base::Bind(&CrashReporter::Start, reporter));
+   dict.SetMethod("addExtraParameter", &AddExtraParameter);
+@@ -57,6 +62,7 @@
+                  base::Bind(&CrashReporter::SetUploadToServer, reporter));
+   dict.SetMethod("getUploadToServer",
+                  base::Bind(&CrashReporter::GetUploadToServer, reporter));
++#endif
+ }
+ 
+ }  // namespace
 diff --git a/atom/browser/api/atom_api_app.cc b/atom/browser/api/atom_api_app.cc
 index 751293e..f10ce99 100644
 --- a/atom/browser/api/atom_api_app.cc
@@ -663,55 +699,6 @@ index 96cb6b9..4d38b2e 100644
    if (!reporter) return;
  
    std::string product_name;
---- a/atom/common/api/atom_api_crash_reporter.cc	2017-11-24 14:57:58.423424000 +0400
-+++ b/atom/common/api/atom_api_crash_reporter.cc	2017-11-24 14:58:31.858654000 +0400
-@@ -34,27 +34,38 @@
- // TODO(2.0) Remove
- void SetExtraParameter(const std::string& key, mate::Arguments* args) {
-   std::string value;
-+#if !defined(OS_FREEBSD)
-   if (args->GetNext(&value))
-     CrashReporter::GetInstance()->AddExtraParameter(key, value);
-   else
-     CrashReporter::GetInstance()->RemoveExtraParameter(key);
-+#endif
- }
- 
- void AddExtraParameter(const std::string& key, const std::string& value) {
-+#if !defined(OS_FREEBSD)
-   CrashReporter::GetInstance()->AddExtraParameter(key, value);
-+#endif
- }
- 
- void RemoveExtraParameter(const std::string& key) {
-+#if !defined(OS_FREEBSD)
-   CrashReporter::GetInstance()->RemoveExtraParameter(key);
-+#endif
- }
- 
- std::map<std::string, std::string> GetParameters() {
-+#if !defined(OS_FREEBSD)
-   return CrashReporter::GetInstance()->GetParameters();
-+#else
-+  return std::map<std::string, std::string>();
-+#endif
- }
- 
- void Initialize(v8::Local<v8::Object> exports, v8::Local<v8::Value> unused,
-                 v8::Local<v8::Context> context, void* priv) {
-   mate::Dictionary dict(context->GetIsolate(), exports);
-+#if !defined(OS_FREEBSD)
-   auto reporter = base::Unretained(CrashReporter::GetInstance());
-   dict.SetMethod("start", base::Bind(&CrashReporter::Start, reporter));
-   dict.SetMethod("setExtraParameter", &SetExtraParameter);
-@@ -67,6 +78,7 @@
-                  base::Bind(&CrashReporter::SetUploadToServer, reporter));
-   dict.SetMethod("getUploadToServer",
-                  base::Bind(&CrashReporter::GetUploadToServer, reporter));
-+#endif
- }
- 
- }  // namespace
 diff --git a/script/build.py b/script/build.py
 index 1a7378b..1209b25 100755
 --- a/script/build.py
@@ -802,11 +789,13 @@ diff --git a/script/lib/config.py b/script/lib/config.py
 index 5ea60fc..217372a 100644
 --- a/script/lib/config.py
 +++ b/script/lib/config.py
-@@ -15,6 +15,7 @@ PLATFORM = {
+@@ -15,6 +15,9 @@ PLATFORM = {
    'cygwin': 'win32',
    'darwin': 'darwin',
    'linux2': 'linux',
++  'freebsd10': 'freebsd',
 +  'freebsd11': 'freebsd',
++  'freebsd12': 'freebsd',
    'win32': 'win32',
  }[sys.platform]
  
@@ -828,23 +817,17 @@ index 1c5f8a7..a733b2e 100644
          ],
          'xcode_settings': {
            'CC': '<(make_clang_dir)/bin/clang',
---- a/brightray/brightray.gypi	2018-03-04 15:17:29.848011000 +0400
-+++ b/brightray/brightray.gypi	2018-03-04 16:38:25.455412000 +0400
-@@ -119,12 +119,13 @@
-               'USE_OPENSSL',
+--- a/brightray/brightray.gypi	2018-01-17 17:52:16.139123000 +0400
++++ b/brightray/brightray.gypi	2018-01-17 17:52:33.313204000 +0400
+@@ -121,7 +121,7 @@
+               'USE_NSS',  # deprecated after Chrome 45.
              ],
            }],
--          ['OS=="linux"', {
-+          ['OS=="linux" or OS=="freebsd"', {
+-          ['OS in ["linux", "mac"]', {
++          ['OS in ["linux", "mac", "freebsd"]', {
              'defines': [
-               'USE_X11',
-               '_LARGEFILE_SOURCE',
-               '_LARGEFILE64_SOURCE',
-               '_FILE_OFFSET_BITS=64',
-+              'USE_NSS_CERTS',
-             ],
-             'cflags_cc': [
-               '-D__STRICT_ANSI__',
+               'WEBRTC_POSIX',
+               'UCHAR_TYPE=uint16_t',
 --- a/brightray/browser/browser_main_parts.cc	2018-01-17 17:55:26.895347000 +0400
 +++ b/brightray/browser/browser_main_parts.cc	2018-01-17 17:54:48.566902000 +0400
 @@ -167,7 +167,7 @@
@@ -856,15 +839,4 @@ index 1c5f8a7..a733b2e 100644
  void OverrideAppLogsPath() {
    base::FilePath path;
    if (PathService::Get(brightray::DIR_APP_DATA, &path)) {
---- a/package.json	2018-03-04 17:26:36.829462000 +0400
-+++ b/package.json	2018-03-04 17:27:01.296858000 +0400
-@@ -12,7 +12,7 @@
-     "dugite": "^1.45.0",
-     "electabul": "~0.0.4",
-     "electron-docs-linter": "^2.3.4",
--    "electron-typescript-definitions": "^1.2.11",
-+    "electron-typescript-definitions": "1.2.11",
-     "github": "^9.2.0",
-     "husky": "^0.14.3",
-     "minimist": "^1.2.0",
-     
+

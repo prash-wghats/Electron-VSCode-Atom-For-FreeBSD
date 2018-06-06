@@ -1,24 +1,14 @@
---- a/third_party/ffmpeg/ffmpeg_generated.gni	2017-11-25 17:52:29.528877000 +0400
-+++ b/third_party/ffmpeg/ffmpeg_generated.gni	2017-11-25 10:19:04.663888000 +0400
-@@ -176,7 +176,7 @@
-   ]
+--- a/third_party/iccjpeg/BUILD.gn	2017-11-25 15:29:43.897890000 +0400
++++ b/third_party/iccjpeg/BUILD.gn	2017-11-25 15:30:07.905164000 +0400
+@@ -3,7 +3,7 @@
+ # found in the LICENSE file.
+ 
+ config("iccjpeg_config") {
+-  include_dirs = [ "." ]
++  include_dirs = [ ".", "/usr/local/include", ]
  }
  
--if ((current_cpu == "x64" && ffmpeg_branding == "Chrome") || (is_android && current_cpu == "arm" && arm_use_neon && ffmpeg_branding == "Chrome") || (is_android && current_cpu == "arm64" && ffmpeg_branding == "Chrome") || (is_android && current_cpu == "mips64el" && ffmpeg_branding == "Chrome") || (is_android && current_cpu == "mipsel" && ffmpeg_branding == "Chrome") || (is_android && current_cpu == "x86" && ffmpeg_branding == "Chrome") || ((is_linux || is_bsd) && current_cpu == "arm" && arm_use_neon && ffmpeg_branding == "Chrome") || ((is_linux || is_bsd) && current_cpu == "arm" && arm_use_neon && ffmpeg_branding == "ChromeOS") || ((is_linux || is_bsd) && current_cpu == "arm" && ffmpeg_branding == "Chrome") || ((is_linux || is_bsd) && current_cpu == "arm" && ffmpeg_branding == "ChromeOS") || ((is_linux || is_bsd) && current_cpu == "arm64" && ffmpeg_branding == "Chrome") || ((is_linux || is_bsd) && current_cpu == "arm64" && ffmpeg_branding == "ChromeOS") || ((is_linux || is_bsd) && current_cpu == "mipsel" && ffmpeg_branding == "Chrome") || ((is_linux || is_bsd) && current_cpu == "mipsel" && ffmpeg_branding == "ChromeOS") || ((is_linux || is_bsd) && current_cpu == "x64" && ffmpeg_branding == "ChromeOS") || ((is_linux | is_bsd) && current_cpu == "x86" && ffmpeg_branding == "Chrome") || ((is_linux || is_bsd) && current_cpu == "x86" && ffmpeg_branding == "ChromeOS") || (is_win && ffmpeg_branding == "Chrome")) {
-+if ((current_cpu == "x64" && ffmpeg_branding == "Chrome") || (is_android && current_cpu == "arm" && arm_use_neon && ffmpeg_branding == "Chrome") || (is_android && current_cpu == "arm64" && ffmpeg_branding == "Chrome") || (is_android && current_cpu == "mips64el" && ffmpeg_branding == "Chrome") || (is_android && current_cpu == "mipsel" && ffmpeg_branding == "Chrome") || (is_android && current_cpu == "x86" && ffmpeg_branding == "Chrome") || ((is_linux || is_bsd) && current_cpu == "arm" && arm_use_neon && ffmpeg_branding == "Chrome") || ((is_linux || is_bsd) && current_cpu == "arm" && arm_use_neon && ffmpeg_branding == "ChromeOS") || ((is_linux || is_bsd) && current_cpu == "arm" && ffmpeg_branding == "Chrome") || ((is_linux || is_bsd) && current_cpu == "arm" && ffmpeg_branding == "ChromeOS") || ((is_linux || is_bsd) && current_cpu == "arm64" && ffmpeg_branding == "Chrome") || ((is_linux || is_bsd) && current_cpu == "arm64" && ffmpeg_branding == "ChromeOS") || ((is_linux || is_bsd) && current_cpu == "mipsel" && ffmpeg_branding == "Chrome") || ((is_linux || is_bsd) && current_cpu == "mipsel" && ffmpeg_branding == "ChromeOS") || ((is_linux || is_bsd) && current_cpu == "x64" && ffmpeg_branding == "ChromeOS") || ((is_linux || is_bsd) && current_cpu == "x86" && ffmpeg_branding == "Chrome") || ((is_linux || is_bsd) && current_cpu == "x86" && ffmpeg_branding == "ChromeOS") || (is_win && ffmpeg_branding == "Chrome")) {
-   ffmpeg_c_sources += [
-     "libavcodec/aac_ac3_parser.c",
-     "libavcodec/aac_parser.c",
---- a/third_party/angle/src/third_party/libXNVCtrl/BUILD.gn	2017-11-25 15:19:45.500682000 +0400
-+++ b/third_party/angle/src/third_party/libXNVCtrl/BUILD.gn	2017-11-25 15:20:25.698303000 +0400
-@@ -11,6 +11,7 @@
-   cflags = [
-     "-Wno-incompatible-pointer-types-discards-qualifiers",
-   ]
-+  include_dirs = [ "/usr/local/include", ]
- }
- 
- source_set("libXNVCtrl") {
+ static_library("iccjpeg") {
 --- a/base/BUILD.gn	2017-11-25 15:33:28.844747000 +0400
 +++ b/base/BUILD.gn	2017-11-25 16:01:49.441283000 +0400
 @@ -1507,7 +1507,8 @@
@@ -31,17 +21,6 @@
      }
  
      defines += [ "USE_SYMBOLIZE" ]
---- a/third_party/iccjpeg/BUILD.gn	2017-11-25 15:29:43.897890000 +0400
-+++ b/third_party/iccjpeg/BUILD.gn	2017-11-25 15:30:07.905164000 +0400
-@@ -3,7 +3,7 @@
- # found in the LICENSE file.
- 
- config("iccjpeg_config") {
--  include_dirs = [ "." ]
-+  include_dirs = [ ".", "/usr/local/include", ]
- }
- 
- static_library("iccjpeg") {
 --- a/net/BUILD.gn	2017-11-25 17:30:07.837877000 +0400
 +++ b/net/BUILD.gn	2017-11-25 17:18:02.786524000 +0400
 @@ -53,7 +53,7 @@
@@ -49,7 +28,7 @@
      "NET_IMPLEMENTATION",
    ]
 - 
-+  include_dirs = [ "../third_party/icu/source/common", "../third_party/icu/source/i18n", "../third_party/protobuf/src", ]
++  include_dirs = [ "../third_party/icu/source/common", "../third_party/icu/source/i18n", "../third_party/protobuf/src",]
    if (use_kerberos) {
      defines += [ "USE_KERBEROS" ]
      if (is_android) {
@@ -74,44 +53,14 @@ diff -ru a/ui/base/BUILD.gn b/ui/base/BUILD.gn
    sources = [
      "android/gfx_jni_registrar.cc",
      "android/gfx_jni_registrar.h",
---- a/third_party/angle/BUILD.gn	2017-11-25 15:25:36.291113000 +0400
-+++ b/third_party/angle/BUILD.gn	2017-11-25 16:08:18.478818000 +0400
-@@ -421,11 +421,7 @@
-     if (is_win) {
-       sources += rebase_path(gles_gypi.libangle_gl_wgl_sources, ".", "src")
-     }
--    if (use_x11) {
--      sources += rebase_path(gles_gypi.libangle_gl_glx_sources, ".", "src")
--      deps += [ "src/third_party/libXNVCtrl:libXNVCtrl" ]
--      configs += [ ":x11" ]
--    }
-+    
-     if (is_mac) {
-       sources += rebase_path(gles_gypi.libangle_gl_cgl_sources, ".", "src")
-       libs += [
-@@ -478,7 +474,13 @@
-   ]
- 
-   public_configs = [ ":libANGLE_config" ]
--
-+  
-+  if (use_x11) {
-+      sources += rebase_path(gles_gypi.libangle_gl_glx_sources, ".", "src")
-+      deps += [ "src/third_party/libXNVCtrl:libXNVCtrl" ]
-+      configs += [ ":x11" ]
-+  }
-+    
-   if (is_win) {
-     data_deps = [
-       ":copy_compiler_dll" 
---- a/content/browser/BUILD.gn	2018-03-04 11:24:27.565814000 +0400
-+++ b/content/browser/BUILD.gn	2018-03-04 11:19:56.545315000 +0400
-@@ -28,7 +28,7 @@
+--- a/content/browser/BUILD.gn	2018-06-01 23:41:40.631763000 +0400
++++ b/content/browser/BUILD.gn	2018-06-01 23:34:46.206380000 +0400
+@@ -29,7 +29,7 @@
    defines = []
    libs = []
    ldflags = []
 -
-+  include_dirs = [ "../../third_party/protobuf/src", ]
++  include_dirs = [ "../../third_party/protobuf/src"]
    deps = [
      "//base",
      "//base:base_static",
