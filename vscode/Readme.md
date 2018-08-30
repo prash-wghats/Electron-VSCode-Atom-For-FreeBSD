@@ -1,5 +1,17 @@
-This is port of Electron and VSCode for Freebsd.
+This is port of Electron and VSCode for Freebsd.  
+# VSCODE 1.26.0
+```
+FreeBSD 11.0-RELEASE-p1  
+Electron v2.0.1  
+Chromium v61.0.3163.100 
+Node v9.10.1  
+Yarn 1.7.0
+Npm 5.7.1
+```
+**Building**  
+` ./vscode_buildv1.26.0.sh`
 
+# VSCODE 1.17.2
 This was built with FreeBSD 11.0-RELEASE-p1. 
 
     Chromium 58.0.3029.110.  
